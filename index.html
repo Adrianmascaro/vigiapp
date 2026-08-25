@@ -1,850 +1,950 @@
-<!-- hecho con gemini -->
-
-<!DOCTYPE html>
+<!-- hecho con chatgpt -->
+<!doctype html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Vigiladores - Seguridad Privada</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Firebase SDK Compat -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    
-    <!-- SheetJS (Excel) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Centinela | Gestión de Vigiladores</title>
 
-    <style>
-        /* Estilos personalizados */
-        .loader {
-            border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6;
-            border-radius: 50%; width: 40px; height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .hidden { display: none !important; }
-        .toast { transition: opacity 0.3s, transform 0.3s; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .tab-btn.active { border-bottom: 2px solid #3b82f6; color: #3b82f6; font-weight: bold; }
-    </style>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root{--navy:#102a43;--blue:#1479d1;--light:#f4f7fb;--line:#dbe4ee;--danger:#c53d3d;--ok:#18865b;--ink:#1c2b3a}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--light);font:14px system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink)}
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer;border:0;border-radius:8px;padding:10px 14px;font-weight:650}
+    .primary{background:var(--blue);color:white}.secondary{background:white;border:1px solid var(--line);color:var(--navy)}
+    .danger{background:#fff0f0;color:var(--danger)}.hidden{display:none!important}
+    .topbar{background:var(--navy);color:#fff;padding:14px max(20px,calc((100% - 1200px)/2));display:flex;gap:12px;align-items:center}
+    .brand{font-size:19px;font-weight:800}.brand small{display:block;font-size:10px;color:#a9c9e9;letter-spacing:1.4px}
+    .spacer{flex:1}.container{max-width:1200px;margin:24px auto;padding:0 18px}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+    .search{flex:1;min-width:230px;padding:10px 13px;border:1px solid var(--line);border-radius:8px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 8px #102a4309}
+    .list{overflow:hidden}
+    .row{display:grid;grid-template-columns:52px 1fr auto auto;gap:13px;align-items:center;padding:12px 16px;border-bottom:1px solid #edf1f5}
+    .row:last-child{border:0}
+    .avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;background:#d9eafa;color:#14518c;display:grid;place-items:center;font-weight:800}
+    .muted{font-size:12px;color:#657587}.warning{color:#bd6d00;font-size:20px}
+    .empty{text-align:center;padding:45px;color:#657587}
+    .modal-bg{position:fixed;inset:0;background:#102a4388;display:grid;place-items:center;padding:18px;z-index:5}
+    .modal{max-width:940px;width:100%;max-height:94vh;overflow:auto;background:white;border-radius:14px}
+    .modal-head{display:flex;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:2}
+    .modal-body{padding:20px 22px}
+    .tabs{display:flex;overflow:auto;border-bottom:1px solid var(--line);position:sticky;top:63px;background:#fff;z-index:1}
+    .tab{white-space:nowrap;border-radius:0;background:transparent;color:#617183;padding:13px 16px}
+    .tab.active{color:var(--blue);border-bottom:3px solid var(--blue)}
+    .pane{display:none}.pane.active{display:block}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .field{display:flex;flex-direction:column;gap:5px}
+    .field label{font-size:12px;font-weight:700;color:#526273}
+    .field input,.field select,.field textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;background:#fff}
+    .field textarea{min-height:92px;resize:vertical}.wide{grid-column:span 2}.full{grid-column:1/-1}
+    .section-title{font-weight:800;margin:5px 0 15px;color:var(--navy)}
+    .photo-wrap{display:flex;gap:15px;align-items:center;margin-bottom:18px}.photo-wrap .avatar{width:75px;height:75px;font-size:23px}
+    .array-form{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:9px;align-items:end;margin:14px 0}
+    .data-table{width:100%;border-collapse:collapse;font-size:13px}.data-table th,.data-table td{text-align:left;padding:9px;border-bottom:1px solid var(--line)}
+    .data-table th{color:#526273}
+    .modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--line);position:sticky;bottom:0;background:white}
+    .filters{padding:16px;margin:-8px 0 18px}
+    .auth{min-height:100vh;display:grid;place-items:center;background:linear-gradient(135deg,#102a43,#1b4f7c)}
+    .auth-card{width:min(410px,calc(100% - 32px));padding:32px}.auth-card h1{margin:0;color:var(--navy)}
+    .auth-card .field{margin:14px 0}.auth-card button{width:100%;margin-top:8px}
+    .link{color:var(--blue);background:none;padding:6px 0}
+    .toast{position:fixed;bottom:20px;right:20px;background:#172b3a;color:white;padding:13px 18px;border-radius:9px;z-index:20;box-shadow:0 6px 20px #0004}
+    .spin{width:17px;height:17px;border:2px solid #fff7;border-top-color:#fff;border-radius:50%;display:inline-block;vertical-align:middle;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media(max-width:650px){.grid{grid-template-columns:1fr 1fr}.wide{grid-column:span 2}.array-form{grid-template-columns:1fr 1fr}.row{grid-template-columns:45px 1fr auto}.row .edit{display:none}.topbar{padding:12px 16px}.modal-body{padding:16px}.modal-head{padding:15px 16px}.modal-foot{padding:14px 16px}}
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen text-gray-800 font-sans">
-
-    <!-- OVERLAY SPINNER -->
-    <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex justify-center items-center hidden">
-        <div class="loader"></div>
+<body>
+  <div id="loading" class="hidden" style="position:fixed;inset:0;background:#102a4344;z-index:30;display:grid;place-items:center">
+    <div style="background:#fff;padding:18px;border-radius:10px">
+      <span class="spin" style="border-color:#1479d155;border-top-color:#1479d1"></span> Procesando…
     </div>
+  </div>
 
-    <!-- TOAST CONTAINER -->
-    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
+  <main id="authView" class="auth">
+    <section class="auth-card card">
+      <h1>Centinela</h1>
+      <p class="muted">Gestión integral de vigiladores</p>
+      <div class="field"><label>Email</label><input id="authEmail" type="email"></div>
+      <div class="field"><label>Contraseña</label><input id="authPassword" type="password" minlength="6"></div>
+      <button class="primary" onclick="login()">Ingresar</button>
+      <button class="link" onclick="register()">Crear una cuenta nueva</button>
+      <p class="muted">Primero configurá Firebase al comienzo del código.</p>
+    </section>
+  </main>
 
-    <!-- PANTALLA DE LOGIN / REGISTRO -->
-    <div id="authScreen" class="min-h-screen flex items-center justify-center">
-        <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-            <h2 class="text-2xl font-bold text-center mb-6 text-blue-600"><i class="fa-solid fa-shield-halved"></i> Gestión de Seguridad</h2>
-            <form id="authForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium">Email</label>
-                    <input type="email" id="authEmail" required class="w-full mt-1 p-2 border rounded focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium">Contraseña</label>
-                    <input type="password" id="authPass" required class="w-full mt-1 p-2 border rounded focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <button type="submit" id="authBtn" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Iniciar Sesión</button>
+  <main id="appView" class="hidden">
+    <header class="topbar">
+      <div class="brand">CENTINELA<small>SEGURIDAD PRIVADA</small></div>
+      <span class="spacer"></span>
+      <span id="userEmail" class="muted" style="color:#d6e8fa"></span>
+      <button class="secondary" onclick="auth.signOut()">Salir</button>
+    </header>
+
+    <section class="container">
+      <div class="toolbar">
+        <input id="search" class="search" placeholder="Buscar por nombre, apellido o DNI…" oninput="render()">
+        <button class="secondary" onclick="toggleFilters()">Filtros avanzados</button>
+        <button class="secondary" onclick="exportJSON()">Exportar JSON</button>
+        <label class="secondary" style="padding:10px 14px;font-weight:650;cursor:pointer">
+          Importar JSON
+          <input type="file" accept=".json" class="hidden" onchange="importJSON(event)">
+        </label>
+
+        <span id="adminButtons" class="hidden">
+          <label class="secondary" style="padding:10px 14px;font-weight:650;cursor:pointer">
+            Importar altas Excel
+            <input type="file" accept=".xlsx,.xls" class="hidden" onchange="excelAltas(event)">
+          </label>
+          <label class="secondary" style="padding:10px 14px;font-weight:650;cursor:pointer">
+            Importar suspensiones
+            <input type="file" accept=".xlsx,.xls" class="hidden" onchange="excelSuspensiones(event)">
+          </label>
+        </span>
+
+        <button class="primary" onclick="openModal()">+ Nuevo Vigilador</button>
+      </div>
+
+      <form id="filterForm" class="filters card hidden">
+        <div class="grid">
+          <div class="field">
+            <label>Habilitación</label>
+            <select name="habTipo" onchange="render()">
+              <option value="">Todas</option><option>Provincia</option><option>CABA</option>
+            </select>
+          </div>
+          <div class="field"><label>Vence antes de</label><input type="date" name="venceAntes" onchange="render()"></div>
+          <div class="field">
+            <label>Categoría</label>
+            <select name="categoria" onchange="render()">
+              <option value="">Todas</option><option>Vigilador</option><option>Vigilador Senior</option><option>Supervisor</option><option>Jefe de Seguridad</option>
+            </select>
+          </div>
+          <div class="field"><label>Obra social contiene</label><input name="obraSocial" oninput="render()"></div>
+          <div class="field">
+            <label>Talla camisa</label>
+            <select name="camisa" onchange="render()">
+              <option value="">Todas</option>
+              <option>36</option><option>38</option><option>40</option><option>42</option><option>44</option><option>46</option><option>48</option><option>50</option><option>52</option><option>54</option><option>56</option><option>58</option><option>60</option>
+            </select>
+          </div>
+          <div class="field"><label>Talla calzado</label><input type="number" name="calzado" oninput="render()"></div>
+          <div class="field"><label>Evaluación mínima</label><input type="number" min="1" max="10" name="minNota" oninput="render()"></div>
+          <div class="field">
+            <label>Observaciones RR.HH.</label>
+            <select name="conObservaciones" onchange="render()"><option value="">Todos</option><option value="si">Con observaciones</option></select>
+          </div>
+          <div class="field">
+            <label>Disciplina</label>
+            <select name="conSancion" onchange="render()"><option value="">Todos</option><option value="si">Con sanciones</option></select>
+          </div>
+        </div>
+      </form>
+
+      <div class="card list" id="list"><div class="empty">Cargando vigiladores…</div></div>
+    </section>
+  </main>
+
+  <div id="modalHost"></div>
+
+  <script>
+    /*
+      CONFIGURACIÓN FIREBASE:
+      Reemplazá todos los valores con los datos de Firebase Console > Configuración del proyecto.
+    */
+    const firebaseConfig = {
+      apiKey: "AIzaSyDBZo39bVcQ3hdhC5FOjYOlwiI-oJ2pCWA",
+      authDomain: "vigiapp-ff701.firebaseapp.com",
+      projectId: "vigiapp-ff701",
+      storageBucket: "vigiapp-ff701.firebasestorage.app",
+      messagingSenderId: "271978217168",
+      appId: "1:271978217168:web:750dab0ca60ac350d1a8d5"
+    };
+
+    // Correos autorizados a importar altas y suspensiones.
+    const ADMIN_EMAILS = ["admin@tuempresa.com"];
+
+    let db, auth, currentUser, vigiladores = [], editing = null, activeTab = 0;
+    let arrays = { entregas: [], evaluaciones: [], sanciones: [] };
+
+    const $ = s => document.querySelector(s);
+    const esc = s => String(s ?? "").replace(/[&<>'"]/g, c => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"
+    }[c]));
+
+    const sizesNum = Array.from({length:13}, (_,i) => 36 + i * 2);
+    const sizesLetter = ["S","M","L","XL","XXL","XXXL"];
+
+    function options(list, selected = "") {
+      return list.map(x => `<option ${String(x) === String(selected) ? "selected" : ""}>${x}</option>`).join("");
+    }
+
+    function toast(msg, error = false) {
+      const box = document.createElement("div");
+      box.className = "toast";
+      box.style.background = error ? "#a63131" : "#18865b";
+      box.textContent = msg;
+      document.body.append(box);
+      setTimeout(() => box.remove(), 3500);
+    }
+
+    function loading(show) {
+      $("#loading").classList.toggle("hidden", !show);
+    }
+
+    function initials(v) {
+      return ((v.nombre || "").slice(0,1) + (v.apellido || "").slice(0,1)).toUpperCase() || "?";
+    }
+
+    function norm(x) {
+      return String(x ?? "").trim().toLowerCase().normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+    }
+
+    function init() {
+      try {
+        firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.firestore();
+
+        auth.onAuthStateChanged(user => {
+          currentUser = user;
+          if (user) {
+            $("#authView").classList.add("hidden");
+            $("#appView").classList.remove("hidden");
+            $("#userEmail").textContent = user.email;
+            $("#adminButtons").classList.toggle("hidden", !ADMIN_EMAILS.includes(user.email));
+            listen();
+          } else {
+            $("#authView").classList.remove("hidden");
+            $("#appView").classList.add("hidden");
+          }
+        });
+      } catch (error) {
+        toast("Configurá Firebase antes de usar la aplicación.", true);
+      }
+    }
+
+    function login() {
+      auth.signInWithEmailAndPassword($("#authEmail").value, $("#authPassword").value)
+        .catch(e => toast(e.message, true));
+    }
+
+    function register() {
+      auth.createUserWithEmailAndPassword($("#authEmail").value, $("#authPassword").value)
+        .catch(e => toast(e.message, true));
+    }
+
+    function listen() {
+      loading(true);
+      db.collection("vigiladores").onSnapshot(snapshot => {
+        vigiladores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        render();
+        loading(false);
+      }, error => {
+        loading(false);
+        toast("No se pudo leer Firestore: " + error.message, true);
+      });
+    }
+
+    function render() {
+      const query = ($("#search").value || "").toLowerCase();
+      const form = $("#filterForm");
+
+      let list = vigiladores.filter(v =>
+        `${v.nombre} ${v.apellido} ${v.dni}`.toLowerCase().includes(query)
+      );
+
+      if (!form.classList.contains("hidden")) {
+        const data = new FormData(form);
+        const minNota = Number(data.get("minNota") || 0);
+
+        list = list.filter(v =>
+          (!data.get("categoria") || v.categoria === data.get("categoria")) &&
+          (!data.get("obraSocial") || norm(v.obraSocial).includes(norm(data.get("obraSocial")))) &&
+          (!data.get("habTipo") || v.habilitacionTipo === data.get("habTipo")) &&
+          (!data.get("venceAntes") || !v.habilitacionVencimiento || v.habilitacionVencimiento <= data.get("venceAntes")) &&
+          (!data.get("camisa") || String(v.camisaTalla) === data.get("camisa")) &&
+          (!data.get("calzado") || String(v.calzadoTalla) === data.get("calzado")) &&
+          (!data.get("conSancion") || (v.sanciones || []).length > 0) &&
+          (!data.get("conObservaciones") || Boolean(v.observaciones)) &&
+          (!minNota || (v.evaluaciones || []).some(x => Number(x.nota) >= minNota))
+        );
+      }
+
+      list.sort((a,b) => (a.apellido || "").localeCompare(b.apellido || ""));
+
+      $("#list").innerHTML = list.length ? list.map(v => `
+        <div class="row">
+          <div class="avatar">${v.foto ? `<img class="avatar" src="${v.foto}">` : initials(v)}</div>
+          <div>
+            <strong>${esc(v.apellido)}, ${esc(v.nombre)}</strong>
+            <div class="muted">DNI ${esc(v.dni || "—")} · Legajo ${esc(v.legajo || "—")}</div>
+          </div>
+          ${(v.sanciones || []).length ? '<span class="warning" title="Tiene sanciones">⚠</span>' : "<span></span>"}
+          <button class="secondary edit" onclick="openModal('${v.id}')">Editar</button>
+        </div>
+      `).join("") : '<div class="empty">No se encontraron vigiladores.</div>';
+    }
+
+    function toggleFilters() {
+      $("#filterForm").classList.toggle("hidden");
+      render();
+    }
+
+    function field(label, key, type = "text", cls = "") {
+      const value = editing?.[key] ?? "";
+      return `<div class="field ${cls}">
+        <label>${label}</label>
+        ${type === "textarea"
+          ? `<textarea name="${key}">${esc(value)}</textarea>`
+          : `<input name="${key}" type="${type}" value="${esc(value)}">`
+        }
+      </div>`;
+    }
+
+    function select(label, key, values, cls = "") {
+      return `<div class="field ${cls}">
+        <label>${label}</label>
+        <select name="${key}">
+          <option value="">Seleccionar</option>
+          ${options(values, editing?.[key])}
+        </select>
+      </div>`;
+    }
+
+    function openModal(id = null) {
+      editing = id ? vigiladores.find(v => v.id === id) : {};
+      arrays = {
+        entregas: [...(editing.entregas || [])],
+        evaluaciones: [...(editing.evaluaciones || [])],
+        sanciones: [...(editing.sanciones || [])]
+      };
+      activeTab = 0;
+
+      $("#modalHost").innerHTML = `
+        <div class="modal-bg">
+          <div class="modal">
+            <div class="modal-head">
+              <strong>${id ? "Editar" : "Nuevo"} Vigilador</strong>
+              <span class="spacer"></span>
+              <button class="secondary" onclick="closeModal()">×</button>
+            </div>
+
+            <div class="tabs">
+              ${["Datos Personales","Habilitaciones","Datos Laborales","Ropa de Trabajo","RR.HH.","Disciplina"]
+                .map((x,i) => `<button class="tab ${i === 0 ? "active" : ""}" onclick="showTab(${i})">${x}</button>`).join("")}
+            </div>
+
+            <form id="vigForm">
+              <div class="modal-body"><div id="panes"></div></div>
+              <div class="modal-foot">
+                <button type="button" class="secondary" onclick="closeModal()">Cancelar</button>
+                <button class="primary">Guardar</button>
+              </div>
             </form>
-            <div class="mt-4 text-center">
-                <a href="#" id="toggleAuthMode" class="text-sm text-blue-500 hover:underline">¿No tienes cuenta? Regístrate</a>
-            </div>
-        </div>
-    </div>
+          </div>
+        </div>`;
 
-    <!-- APP PRINCIPAL -->
-    <div id="appScreen" class="hidden">
-        <!-- Navbar -->
-        <nav class="bg-blue-800 text-white p-4 shadow-md flex justify-between items-center">
-            <h1 class="text-xl font-bold"><i class="fa-solid fa-shield-halved mr-2"></i> Vigiladores</h1>
-            <div class="flex gap-4 items-center">
-                <span id="userEmail" class="text-sm"></span>
-                <button onclick="logout()" class="bg-red-500 px-3 py-1 rounded hover:bg-red-600 text-sm"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
-            </div>
-        </nav>
+      renderPanes();
+      $("#vigForm").onsubmit = saveVigilador;
+    }
 
-        <!-- Main Content -->
-        <div class="p-6 max-w-7xl mx-auto">
-            <!-- Toolbar -->
-            <div class="flex flex-wrap justify-between items-center bg-white p-4 rounded shadow mb-6 gap-4">
-                <div class="flex flex-1 gap-2 min-w-[300px]">
-                    <div class="relative w-full max-w-md">
-                        <i class="fa-solid fa-search absolute left-3 top-3 text-gray-400"></i>
-                        <input type="text" id="searchInput" placeholder="Buscar por Nombre, Apellido o DNI..." class="w-full pl-10 p-2 border rounded focus:ring-blue-500" onkeyup="renderTable()">
-                    </div>
-                </div>
-                <div class="flex gap-2 flex-wrap">
-                    <button onclick="openModal()" class="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700"><i class="fa-solid fa-plus"></i> Nuevo Vigilador</button>
-                    <label class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 cursor-pointer">
-                        <i class="fa-solid fa-file-excel"></i> Importar Altas
-                        <input type="file" id="importAltasBtn" accept=".xlsx, .xls" class="hidden" onchange="handleImportAltas(event)">
-                    </label>
-                    <label class="bg-orange-500 text-white px-4 py-2 rounded shadow hover:bg-orange-600 cursor-pointer">
-                        <i class="fa-solid fa-gavel"></i> Importar Sanciones
-                        <input type="file" id="importSancionesBtn" accept=".xlsx, .xls" class="hidden" onchange="handleImportSanciones(event)">
-                    </label>
-                </div>
+    function renderPanes() {
+      $("#panes").innerHTML = `
+        <section class="pane ${activeTab === 0 ? "active" : ""}">
+          <div class="photo-wrap">
+            <div class="avatar" id="photoPreview">
+              ${editing?.foto ? `<img class="avatar" src="${editing.foto}">` : initials(editing || {})}
             </div>
+            <div class="field">
+              <label>Foto de perfil</label>
+              <input id="photoInput" type="file" accept="image/*">
+              <small class="muted">Se guarda como base64 dentro del registro.</small>
+            </div>
+          </div>
+          <div class="grid">
+            ${field("Nombre","nombre")}
+            ${field("Apellido","apellido")}
+            ${field("DNI","dni")}
+            ${field("Fecha de nacimiento","fechaNacimiento","date")}
+            ${select("Estado civil","estadoCivil",["Soltero/a","Casado/a","Divorciado/a","Viudo/a","Unión convivencial"])}
+            ${field("Nombre de la madre","madre")}
+            ${field("Nombre del padre","padre")}
+            ${field("Domicilio","domicilio","text","wide")}
+            ${field("Código postal","codigoPostal")}
+            ${field("Teléfono","telefono")}
+            ${field("Email","email","email")}
+          </div>
+        </section>
 
-            <!-- Tabla / Lista -->
-            <div class="bg-white rounded shadow overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-200 text-gray-700">
-                            <th class="p-3">Foto</th>
-                            <th class="p-3">Legajo</th>
-                            <th class="p-3">Nombre Completo</th>
-                            <th class="p-3">DNI</th>
-                            <th class="p-3">Categoría</th>
-                            <th class="p-3">Estado</th>
-                            <th class="p-3 text-center">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="vigiladoresTableBody">
-                        <!-- Renderizado por JS -->
+        <section class="pane ${activeTab === 1 ? "active" : ""}">
+          <p class="section-title">Habilitación vigente</p>
+          <div class="grid">
+            ${select("Tipo","habilitacionTipo",["Provincia","CABA"])}
+            ${field("Número","habilitacionNumero")}
+            ${field("Fecha de vencimiento","habilitacionVencimiento","date")}
+            ${field("Organismo","habilitacionOrganismo","text","wide")}
+          </div>
+        </section>
+
+        <section class="pane ${activeTab === 2 ? "active" : ""}">
+          <p class="section-title">Datos laborales</p>
+          <div class="grid">
+            ${field("Legajo","legajo")}
+            ${field("Fecha de ingreso","fechaIngreso","date")}
+            ${select("Categoría","categoria",["Vigilador","Vigilador Senior","Supervisor","Jefe de Seguridad"])}
+            ${field("Horario","horario")}
+            ${field("Obra social","obraSocial")}
+            ${field("Sindicato","sindicato")}
+            ${field("CUIL","cuil")}
+            ${field("Banco","banco")}
+            ${field("Número de cuenta","numeroCuenta")}
+            ${field("CBU","cbu","text","full")}
+          </div>
+        </section>
+
+        <section class="pane ${activeTab === 3 ? "active" : ""}">
+          <p class="section-title">Talles y entrega de indumentaria</p>
+          <div class="grid">
+            ${select("Talla camisa","camisaTalla",sizesNum)}
+            ${select("Cantidad camisa","camisaCantidad",[1,2,3,4])}
+            ${select("Talla pantalón","pantalonTalla",sizesNum)}
+            ${select("Cantidad pantalón","pantalonCantidad",[1,2,3,4])}
+            ${select("Talla tricota","tricotaTalla",sizesLetter)}
+            ${select("Cantidad tricota","tricotaCantidad",[1,2,3])}
+            ${select("Talla campera","camperaTalla",sizesLetter)}
+            ${select("Cantidad campera","camperaCantidad",[1,2])}
+            ${select("Cantidad corbata","corbataCantidad",[0,1,2,3,4])}
+            ${field("Talla calzado","calzadoTalla","number")}
+            ${select("Talla cinturón","cinturonTalla",[90,100,110,120,130,140,150,160])}
+            ${select("Cantidad cinturón","cinturonCantidad",[1,2,3])}
+          </div>
+          <div id="entregasBox"></div>
+        </section>
+
+        <section class="pane ${activeTab === 4 ? "active" : ""}">
+          <div class="grid">${field("Observaciones","observaciones","textarea","full")}</div>
+          <div id="evaluacionesBox"></div>
+        </section>
+
+        <section class="pane ${activeTab === 5 ? "active" : ""}">
+          <div id="sancionesBox"></div>
+        </section>`;
+
+      $("#photoInput")?.addEventListener("change", readPhoto);
+      renderArrays();
+    }
+
+    function showTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll(".tab").forEach((x,i) => x.classList.toggle("active", i === tab));
+      document.querySelectorAll(".pane").forEach((x,i) => x.classList.toggle("active", i === tab));
+    }
+
+    function readPhoto(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (file.size > 900000) return toast("La foto debe pesar menos de 900 KB.", true);
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        editing.foto = reader.result;
+        $("#photoPreview").innerHTML = `<img class="avatar" src="${reader.result}">`;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function table(items, heads, keys, arrayName) {
+      return `<table class="data-table">
+        <thead><tr>${heads.map(x => `<th>${x}</th>`).join("")}<th></th></tr></thead>
+        <tbody>
+          ${items.length ? items.map((row,index) => `
+            <tr>
+              ${keys.map(key => `<td>${esc(row[key])}</td>`).join("")}
+              <td><button type="button" class="danger" onclick="removeArray('${arrayName}',${index})">×</button></td>
+            </tr>`).join("")
+            : `<tr><td colspan="9" class="muted">Sin registros.</td></tr>`}
+        </tbody>
+      </table>`;
+    }
+
+    function renderArrays() {
+      if ($("#entregasBox")) {
+        $("#entregasBox").innerHTML = `
+          <p class="section-title">Entregas</p>
+          ${table(arrays.entregas,["Fecha","Tipo"],["fecha","tipo"],"entregas")}
+          <div class="array-form">
+            <div class="field"><label>Fecha</label><input id="entFecha" type="date"></div>
+            <div class="field"><label>Tipo entregado</label><input id="entTipo"></div>
+            <button type="button" class="secondary" onclick="addEntrega()">Agregar</button>
+          </div>`;
+      }
+
+      if ($("#evaluacionesBox")) {
+        $("#evaluacionesBox").innerHTML = `
+          <p class="section-title">Evaluaciones</p>
+          ${table(arrays.evaluaciones,["Fecha","Nota"],["fecha","nota"],"evaluaciones")}
+          <div class="array-form">
+            <div class="field"><label>Fecha</label><input id="evaFecha" type="date"></div>
+            <div class="field"><label>Nota</label><input id="evaNota" type="number" min="1" max="10"></div>
+            <button type="button" class="secondary" onclick="addEvaluacion()">Agregar</button>
+          </div>`;
+      }
+
+      if ($("#sancionesBox")) {
+        $("#sancionesBox").innerHTML = `
+          <p class="section-title">Sanciones y apercibimientos</p>
+          ${table(arrays.sanciones,["Fecha","Días/Apercibimiento","Servicio","Motivo"],["fecha","tipo","servicio","motivo"],"sanciones")}
+          <div class="array-form">
+            <div class="field"><label>Fecha</label><input id="sanFecha" type="date"></div>
+            <div class="field"><label>Días / apercibimiento</label><input id="sanTipo" placeholder="Ej. 3 días"></div>
+            <div class="field"><label>Servicio</label><input id="sanServicio"></div>
+            <div class="field"><label>Motivo</label><input id="sanMotivo"></div>
+            <button type="button" class="secondary" onclick="addSancion()">Agregar</button>
+          </div>`;
+      }
+    }
+
+    function addEntrega() {
+      if ($("#entTipo").value) {
+        arrays.entregas.push({fecha:$("#entFecha").value,tipo:$("#entTipo").value});
+        renderArrays();
+      }
+    }
+
+    function addEvaluacion() {
+      if ($("#evaNota").value) {
+        arrays.evaluaciones.push({fecha:$("#evaFecha").value,nota:$("#evaNota").value});
+        renderArrays();
+      }
+    }
+
+    function addSancion() {
+      if ($("#sanMotivo").value) {
+        arrays.sanciones.push({
+          fecha:$("#sanFecha").value,
+          tipo:$("#sanTipo").value,
+          servicio:$("#sanServicio").value,
+          motivo:$("#sanMotivo").value
+        });
+        renderArrays();
+      }
+    }
+
+    function removeArray(name, index) {
+      arrays[name].splice(index, 1);
+      renderArrays();
+    }
+
+    async function saveVigilador(event) {
+      event.preventDefault();
+
+      const data = Object.fromEntries(new FormData(event.target));
+      data.foto = editing.foto || "";
+      data.entregas = arrays.entregas;
+      data.evaluaciones = arrays.evaluaciones;
+      data.sanciones = arrays.sanciones;
+      data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+
+      try {
+        loading(true);
+
+        if (editing.id) {
+          await db.collection("vigiladores").doc(editing.id).set(data, {merge:true});
+        } else {
+          data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+          await db.collection("vigiladores").add(data);
+        }
+
+        closeModal();
+        toast("Vigilador guardado correctamente.");
+      } catch (error) {
+        toast(error.message, true);
+      } finally {
+        loading(false);
+      }
+    }
+
+    function closeModal() {
+      $("#modalHost").innerHTML = "";
+    }
+
+    function download(name, content, type = "application/json") {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(new Blob([content], {type}));
+      link.download = name;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function exportJSON() {
+      download("backup-vigiladores.json", JSON.stringify(vigiladores.map(({id,...v}) => v), null, 2));
+      toast("Backup JSON generado.");
+    }
+
+    async function importJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        const records = JSON.parse(await file.text());
+        if (!Array.isArray(records)) throw new Error("El JSON debe contener una lista.");
+
+        loading(true);
+        await commitInChunks(records, (batch, record) => {
+          batch.set(db.collection("vigiladores").doc(), record);
+        });
+
+        toast(`${records.length} registros importados.`);
+      } catch (error) {
+        toast(error.message, true);
+      } finally {
+        loading(false);
+        event.target.value = "";
+      }
+    }
+
+    function headerRow(rows, required) {
+      return rows.findIndex(row => required.every(word =>
+        row.some(cell => norm(cell).includes(norm(word)))
+      ));
+    }
+
+    function rowObj(headers, row) {
+      const output = {};
+      headers.forEach((header, i) => {
+        const value = row[i];
+        if (header !== "" && header != null) {
+          output[norm(header)] = value instanceof Date
+            ? value.toISOString().slice(0,10)
+            : String(value ?? "").trim();
+        }
+      });
+      return output;
+    }
+
+    function findVal(obj, ...names) {
+      const keys = Object.keys(obj);
+      for (const name of names) {
+        const normalized = norm(name);
+        const key = keys.find(k => k === normalized) || keys.find(k => k.includes(normalized));
+        if (key) return obj[key];
+      }
+      return "";
+    }
+
+    function excelDate(value) {
+      if (!value) return "";
+      if (/^\d{4}-\d\d-\d\d$/.test(value)) return value;
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0,10);
+    }
+
+    function splitFullName(value) {
+      const text = String(value || "").trim();
+      if (!text) return {apellido:"", nombre:""};
+
+      if (text.includes(",")) {
+        const [apellido, ...names] = text.split(",");
+        return {apellido:apellido.trim(), nombre:names.join(",").trim()};
+      }
+
+      const parts = text.split(/\s+/);
+      return {apellido:parts.shift() || "", nombre:parts.join(" ")};
+    }
+
+    /*
+      Mapeo específico de ALTAS.xlsx:
+      N° Legajo, Nombre y Apellido, DNI, CUIL, F.NACIMIENTO, Fecha Alta,
+      N. MADRE, N. PADRE, Domicilio, C.P., Celular, Telefono, MAIL,
+      N°CBU, N° CUENTA, BANCO, ESTADO CIVIL, COD OBRA y OBRA SOCIAL.
+    */
+    function mapAlta(row) {
+      const fullName = findVal(row, "nombre y apellido");
+      const person = splitFullName(fullName);
+      const celular = findVal(row, "celular");
+      const telefono = findVal(row, "telefono");
+
+      return {
+        legajo: findVal(row, "n legajo", "legajo"),
+        nombre: person.nombre || findVal(row, "nombre"),
+        apellido: person.apellido || findVal(row, "apellido"),
+        dni: findVal(row, "dni"),
+        cuil: findVal(row, "cuil"),
+        fechaNacimiento: excelDate(findVal(row, "f nacimiento", "fecha nacimiento", "nacimiento")),
+        nacionalidad: findVal(row, "nacionalidad"),
+        fechaIngreso: excelDate(findVal(row, "fecha alta", "alta")),
+        madre: findVal(row, "n madre", "madre"),
+        padre: findVal(row, "n padre", "padre"),
+        domicilio: findVal(row, "domicilio"),
+        codigoPostal: findVal(row, "c p", "codigo postal"),
+        telefono: celular || telefono,
+        telefonoAlternativo: telefono && telefono !== celular ? telefono : "",
+        email: findVal(row, "mail", "email"),
+        cbu: findVal(row, "n cbu", "cbu"),
+        numeroCuenta: findVal(row, "n cuenta", "cuenta"),
+        banco: findVal(row, "banco"),
+        haberes: findVal(row, "haberes"),
+        estadoCivil: findVal(row, "estado civil"),
+        codigoObra: findVal(row, "cod obra", "codigo obra"),
+        obraSocial: findVal(row, "obra social"),
+
+        foto: "",
+        habilitacionTipo: "",
+        habilitacionNumero: "",
+        habilitacionVencimiento: "",
+        habilitacionOrganismo: "",
+        categoria: "Vigilador",
+        horario: "",
+        sindicato: "",
+        camisaTalla: "",
+        camisaCantidad: "",
+        pantalonTalla: "",
+        pantalonCantidad: "",
+        tricotaTalla: "",
+        tricotaCantidad: "",
+        camperaTalla: "",
+        camperaCantidad: "",
+        corbataCantidad: "",
+        calzadoTalla: "",
+        cinturonTalla: "",
+        cinturonCantidad: "",
+        observaciones: "",
+        entregas: [],
+        evaluaciones: [],
+        sanciones: []
+      };
+    }
+
+    async function commitInChunks(items, write) {
+      for (let i = 0; i < items.length; i += 450) {
+        const batch = db.batch();
+        items.slice(i, i + 450).forEach(item => write(batch, item));
+        await batch.commit();
+      }
+    }
+
+    async function excelAltas(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        const workbook = XLSX.read(await file.arrayBuffer(), {type:"array",cellDates:true});
+        const sheetName = workbook.SheetNames.find(name => norm(name) === "altas");
+
+        if (!sheetName) throw new Error("No existe una hoja llamada ALTAS.");
+
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+          header: 1,
+          defval: "",
+          raw: true
+        });
+
+        const headerIndex = headerRow(rows, ["legajo", "nombre", "dni"]);
+
+        if (headerIndex < 0) {
+          throw new Error("No se encontró la fila de encabezados. Se esperan N° Legajo, Nombre y Apellido y DNI.");
+        }
+
+        const altas = rows.slice(headerIndex + 1)
+          .filter(row => row.some(cell => String(cell).trim() !== ""))
+          .map(row => mapAlta(rowObj(rows[headerIndex], row)))
+          .filter(v => v.legajo || v.dni || v.nombre);
+
+        if (!altas.length) throw new Error("No hay registros de altas debajo de los encabezados.");
+
+        const byDni = new Map(vigiladores
+          .filter(v => v.dni)
+          .map(v => [String(v.dni).replace(/\D/g,""), v]));
+
+        const byLegajo = new Map(vigiladores
+          .filter(v => v.legajo)
+          .map(v => [norm(v.legajo), v]));
+
+        const changes = altas.map(v => {
+          const previous = byDni.get(String(v.dni).replace(/\D/g,"")) || byLegajo.get(norm(v.legajo));
+          return {...v, _id:previous?.id || "", _action:previous ? "Actualizar" : "Crear"};
+        });
+
+        showPreview(
+          "Altas detectadas",
+          changes.map(v => ({
+            "Acción": v._action,
+            "Legajo": v.legajo,
+            "Nombre": `${v.apellido}, ${v.nombre}`,
+            "DNI": v.dni,
+            "CUIL": v.cuil,
+            "Fecha alta": v.fechaIngreso,
+            "Obra social": v.obraSocial
+          })),
+          async () => {
+            loading(true);
+
+            try {
+              await commitInChunks(changes, (batch, v) => {
+                const {_id, _action, ...data} = v;
+                data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+
+                if (_id) {
+                  batch.set(db.collection("vigiladores").doc(_id), data, {merge:true});
+                } else {
+                  data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                  batch.set(db.collection("vigiladores").doc(), data);
+                }
+              });
+
+              closeModal();
+
+              const nuevos = changes.filter(v => v._action === "Crear").length;
+              const actualizados = changes.filter(v => v._action === "Actualizar").length;
+              toast(`${changes.length} altas procesadas: ${nuevos} nuevas y ${actualizados} actualizadas.`);
+            } catch (error) {
+              toast("No se pudo importar: " + error.message, true);
+            } finally {
+              loading(false);
+            }
+          }
+        );
+      } catch (error) {
+        toast(error.message, true);
+      } finally {
+        event.target.value = "";
+      }
+    }
+
+    async function excelSuspensiones(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        const workbook = XLSX.read(await file.arrayBuffer(), {type:"array"});
+        const found = [];
+
+        for (const sheetName of workbook.SheetNames) {
+          const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {header:1,defval:""});
+          const h = headerRow(rows, ["fecha", "motivo"]);
+          if (h < 0) continue;
+
+          const sanciones = rows.slice(h + 1)
+            .filter(row => row.some(Boolean))
+            .map(row => {
+              const obj = rowObj(rows[h], row);
+              return {
+                fecha: String(findVal(obj, "fecha")),
+                motivo: String(findVal(obj, "motivo")),
+                tipo: String(findVal(obj, "dias", "apercibimiento", "sancion")),
+                servicio: String(findVal(obj, "servicio"))
+              };
+            });
+
+          if (sanciones.length) {
+            const target = vigiladores.find(v =>
+              norm(`${v.apellido} ${v.nombre}`) === norm(sheetName) ||
+              norm(`${v.nombre} ${v.apellido}`) === norm(sheetName)
+            );
+
+            found.push({hoja:sheetName, target, sanciones});
+          }
+        }
+
+        if (!found.length) throw new Error("No se hallaron hojas con encabezados FECHA y MOTIVO.");
+
+        showPreview(
+          "Suspensiones encontradas",
+          found.map(x => ({
+            "Vigilador": x.target ? `${x.target.apellido}, ${x.target.nombre}` : "SIN COINCIDENCIA",
+            "Hoja": x.hoja,
+            "Sanciones": x.sanciones.length
+          })),
+          async () => {
+            loading(true);
+
+            try {
+              const batch = db.batch();
+              let total = 0;
+
+              found.forEach(x => {
+                if (x.target) {
+                  batch.update(db.collection("vigiladores").doc(x.target.id), {
+                    sanciones: [...(x.target.sanciones || []), ...x.sanciones]
+                  });
+                  total += x.sanciones.length;
+                }
+              });
+
+              await batch.commit();
+              closeModal();
+              toast(`${total} sanciones incorporadas.`);
+            } catch (error) {
+              toast(error.message, true);
+            } finally {
+              loading(false);
+            }
+          }
+        );
+      } catch (error) {
+        toast(error.message, true);
+      } finally {
+        event.target.value = "";
+      }
+    }
+
+    function showPreview(title, rows, confirm) {
+      const headers = rows.length ? Object.keys(rows[0]) : [];
+
+      $("#modalHost").innerHTML = `
+        <div class="modal-bg">
+          <div class="modal" style="max-width:720px">
+            <div class="modal-head"><strong>${title}</strong></div>
+            <div class="modal-body">
+              <p class="muted">Vista previa: se muestran hasta 5 registros. Confirmá para guardar los resultados.</p>
+              <div style="overflow:auto">
+                ${rows.length ? `
+                  <table class="data-table">
+                    <thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead>
+                    <tbody>
+                      ${rows.slice(0,5).map(row => `
+                        <tr>${Object.values(row).map(value => `<td>${esc(value)}</td>`).join("")}</tr>
+                      `).join("")}
                     </tbody>
-                </table>
+                  </table>` : "Sin datos"}
+              </div>
             </div>
-        </div>
-    </div>
-
-    <!-- MODAL VIGILADOR -->
-    <div id="vigiladorModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-40 hidden flex justify-center items-center p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl h-[90vh] flex flex-col">
-            <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
-                <h2 class="text-xl font-bold" id="modalTitle">Nuevo Vigilador</h2>
-                <button onclick="closeModal()" class="text-gray-500 hover:text-red-500"><i class="fa-solid fa-times text-xl"></i></button>
+            <div class="modal-foot">
+              <button class="secondary" onclick="closeModal()">Cancelar</button>
+              <button class="primary" id="confirmImport">Confirmar importación</button>
             </div>
-            
-            <div class="flex-1 overflow-hidden flex flex-col">
-                <!-- Tabs -->
-                <div class="flex border-b overflow-x-auto">
-                    <button class="tab-btn active px-4 py-3 whitespace-nowrap" onclick="switchTab('tab-personal')">Datos Personales</button>
-                    <button class="tab-btn px-4 py-3 whitespace-nowrap" onclick="switchTab('tab-hab')">Habilitaciones</button>
-                    <button class="tab-btn px-4 py-3 whitespace-nowrap" onclick="switchTab('tab-lab')">Laborales</button>
-                    <button class="tab-btn px-4 py-3 whitespace-nowrap" onclick="switchTab('tab-ropa')">Ropa de Trabajo</button>
-                    <button class="tab-btn px-4 py-3 whitespace-nowrap" onclick="switchTab('tab-rrhh')">RR.HH.</button>
-                    <button class="tab-btn px-4 py-3 whitespace-nowrap" onclick="switchTab('tab-disc')">Disciplina</button>
-                </div>
+          </div>
+        </div>`;
 
-                <!-- Formularios -->
-                <div class="p-6 overflow-y-auto flex-1 bg-gray-50" id="formContainer">
-                    
-                    <!-- Pestaña Personal -->
-                    <div id="tab-personal" class="tab-content active space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Foto de Perfil</label>
-                                <div class="flex items-center gap-3 mt-1">
-                                    <img id="previewFoto" src="https://via.placeholder.com/64" class="w-16 h-16 rounded-full object-cover border">
-                                    <input type="file" accept="image/*" class="text-sm" onchange="convertPhoto(event)">
-                                </div>
-                            </div>
-                            <div><label class="block text-sm font-medium text-gray-700">Nombre</label><input type="text" id="v_nombre" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Apellido</label><input type="text" id="v_apellido" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">DNI</label><input type="text" id="v_dni" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Fecha Nacimiento</label><input type="date" id="v_fechanac" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Estado Civil</label><select id="v_estadocivil" class="w-full p-2 border rounded"><option value="SOLTERO">Soltero/a</option><option value="CASADO">Casado/a</option><option value="DIVORCIADO">Divorciado/a</option><option value="VIUDO">Viudo/a</option><option value="">Otro</option></select></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Nombre Madre</label><input type="text" id="v_madre" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Nombre Padre</label><input type="text" id="v_padre" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Domicilio</label><input type="text" id="v_domicilio" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">C.P.</label><input type="text" id="v_cp" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Teléfono / Celular</label><input type="text" id="v_telefono" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Email</label><input type="email" id="v_email" class="w-full p-2 border rounded"></div>
-                        </div>
-                    </div>
+      $("#confirmImport").onclick = confirm;
+    }
 
-                    <!-- Pestaña Habilitaciones -->
-                    <div id="tab-hab" class="tab-content space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="block text-sm font-medium text-gray-700">Tipo de Habilitación</label><select id="v_hab_tipo" class="w-full p-2 border rounded"><option value="">Ninguna</option><option>Provincia</option><option>CABA</option><option>Ambas</option></select></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Número de Habilitación</label><input type="text" id="v_hab_numero" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Fecha de Vencimiento</label><input type="date" id="v_hab_vto" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Organismo</label><input type="text" id="v_hab_org" class="w-full p-2 border rounded"></div>
-                        </div>
-                    </div>
+    init();
+  </script>
 
-                    <!-- Pestaña Laborales -->
-                    <div id="tab-lab" class="tab-content space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div><label class="block text-sm font-medium text-gray-700">Legajo</label><input type="text" id="v_legajo" class="w-full p-2 border rounded font-bold text-blue-600"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Fecha de Ingreso</label><input type="date" id="v_ingreso" class="w-full p-2 border rounded"></div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Categoría</label>
-                                <select id="v_categoria" class="w-full p-2 border rounded">
-                                    <option>Vigilador</option><option>Vigilador Senior</option><option>Supervisor</option><option>Jefe de Seguridad</option>
-                                </select>
-                            </div>
-                            <div><label class="block text-sm font-medium text-gray-700">Horario</label><input type="text" id="v_horario" placeholder="Ej: L a V 06 a 14hs" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Obra Social</label><input type="text" id="v_obrasocial" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Sindicato</label><input type="text" id="v_sindicato" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">CUIL</label><input type="text" id="v_cuil" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Banco</label><input type="text" id="v_banco" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Nº Cuenta</label><input type="text" id="v_cuenta" class="w-full p-2 border rounded"></div>
-                            <div class="md:col-span-3"><label class="block text-sm font-medium text-gray-700">CBU</label><input type="text" id="v_cbu" class="w-full p-2 border rounded"></div>
-                        </div>
-                    </div>
+  <!--
+    REGLAS RECOMENDADAS DE FIRESTORE:
+    Pegá esto en Firebase Console > Firestore Database > Reglas.
 
-                    <!-- Pestaña Ropa -->
-                    <div id="tab-ropa" class="tab-content space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div><label class="block text-sm font-medium text-gray-700">Camisa (Talle 36-60)</label><input type="number" min="36" max="60" id="v_ropa_camisa_t" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Camisa (Cant 1-4)</label><input type="number" min="1" max="4" id="v_ropa_camisa_c" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Pantalón (Talle 36-60)</label><input type="number" min="36" max="60" id="v_ropa_pantalon_t" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Pantalón (Cant 1-4)</label><input type="number" min="1" max="4" id="v_ropa_pantalon_c" class="w-full p-2 border rounded"></div>
-                            
-                            <div><label class="block text-sm font-medium text-gray-700">Tricota (Talle S-XXXL)</label>
-                                <select id="v_ropa_tricota_t" class="w-full p-2 border rounded"><option value="">N/A</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select>
-                            </div>
-                            <div><label class="block text-sm font-medium text-gray-700">Tricota (Cant 1-3)</label><input type="number" min="1" max="3" id="v_ropa_tricota_c" class="w-full p-2 border rounded"></div>
-                            
-                            <div><label class="block text-sm font-medium text-gray-700">Campera (Talle S-XXXL)</label>
-                                <select id="v_ropa_campera_t" class="w-full p-2 border rounded"><option value="">N/A</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select>
-                            </div>
-                            <div><label class="block text-sm font-medium text-gray-700">Campera (Cant 1-2)</label><input type="number" min="1" max="2" id="v_ropa_campera_c" class="w-full p-2 border rounded"></div>
-
-                            <div><label class="block text-sm font-medium text-gray-700">Corbatas (Cant)</label><input type="number" min="0" id="v_ropa_corbata_c" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Calzado (Talle)</label><input type="number" id="v_ropa_calzado" class="w-full p-2 border rounded"></div>
-                            
-                            <div><label class="block text-sm font-medium text-gray-700">Cinturón (90-160)</label><input type="number" step="10" min="90" max="160" id="v_ropa_cinto_t" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-medium text-gray-700">Cinturón (Cant 1-3)</label><input type="number" min="1" max="3" id="v_ropa_cinto_c" class="w-full p-2 border rounded"></div>
-                        </div>
-                    </div>
-
-                    <!-- Pestaña RRHH -->
-                    <div id="tab-rrhh" class="tab-content space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Observaciones Generales</label>
-                            <textarea id="v_observaciones" rows="4" class="w-full p-2 border rounded"></textarea>
-                        </div>
-                    </div>
-
-                    <!-- Pestaña Disciplina -->
-                    <div id="tab-disc" class="tab-content space-y-4">
-                        <div class="bg-white p-4 rounded border">
-                            <h3 class="font-bold mb-2">Agregar Sanción</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
-                                <input type="date" id="ds_fecha" class="p-2 border rounded" placeholder="Fecha">
-                                <input type="text" id="ds_dias" class="p-2 border rounded" placeholder="Días / Apercibimiento">
-                                <input type="text" id="ds_servicio" class="p-2 border rounded" placeholder="Servicio/Objetivo">
-                                <input type="text" id="ds_motivo" class="p-2 border rounded" placeholder="Motivo">
-                            </div>
-                            <button onclick="agregarSancionUI()" class="bg-blue-600 text-white px-3 py-1 rounded text-sm"><i class="fa-solid fa-plus"></i> Añadir</button>
-                        </div>
-                        
-                        <table class="w-full text-sm text-left border mt-4">
-                            <thead class="bg-gray-100"><tr><th class="p-2">Fecha</th><th class="p-2">Castigo</th><th class="p-2">Servicio</th><th class="p-2">Motivo</th><th class="p-2"></th></tr></thead>
-                            <tbody id="sancionesTableBody"></tbody>
-                        </table>
-                    </div>
-
-                </div>
-            </div>
-
-            <!-- Footer del Modal -->
-            <div class="p-4 border-t flex justify-end gap-2 bg-gray-50 rounded-b-lg">
-                <button onclick="closeModal()" class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100 font-medium">Cancelar</button>
-                <button onclick="guardarVigilador()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">Guardar Cambios</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- SCRIPT DE LÓGICA -->
-    <script>
-        // ==========================================
-        // 1. CONFIGURACIÓN DE FIREBASE (¡REEMPLAZAR!)
-        // ==========================================
-        const firebaseConfig = {
-	      apiKey: "AIzaSyDBZo39bVcQ3hdhC5FOjYOlwiI-oJ2pCWA",
-	      authDomain: "vigiapp-ff701.firebaseapp.com",
-	      projectId: "vigiapp-ff701",
-	      storageBucket: "vigiapp-ff701.firebasestorage.app",
-	      messagingSenderId: "271978217168",
-	      appId: "1:271978217168:web:750dab0ca60ac350d1a8d5"
-        };
-
-        // Inicializar Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
+    rules_version = '2';
+    service cloud.firestore {
+      match /databases/{database}/documents {
+        match /vigiladores/{document=**} {
+          allow read, write: if request.auth != null;
         }
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-
-        // ==========================================
-        // VARIABLES GLOBALES
-        // ==========================================
-        let vigiladoresData = []; // Array en memoria
-        let currentSanciones = []; // Sanciones del vigilador en edición
-        let currentEditingId = null; // ID del documento actual
-        let currentFotoBase64 = ""; // Foto en edición
-        let isLoginMode = true; // Para el toggle del auth form
-
-        // ==========================================
-        // 2. UTILIDADES DE INTERFAZ
-        // ==========================================
-        function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
-        function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
-        
-        function showToast(msg, type = 'success') {
-            const toast = document.createElement('div');
-            toast.className = `p-4 rounded shadow-lg text-white font-medium flex items-center gap-2 transform translate-x-full transition-transform duration-300 ${type === 'success' ? 'bg-green-600' : type === 'warning' ? 'bg-orange-500' : 'bg-red-600'}`;
-            toast.innerHTML = `<i class="fa-solid fa-${type === 'success' ? 'check-circle' : 'circle-exclamation'}"></i> ${msg}`;
-            
-            const container = document.getElementById('toastContainer');
-            container.appendChild(toast);
-            
-            setTimeout(() => toast.classList.remove('translate-x-full'), 10);
-            setTimeout(() => {
-                toast.classList.add('translate-x-full');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
-        // ==========================================
-        // 3. AUTENTICACIÓN
-        // ==========================================
-        const authForm = document.getElementById('authForm');
-        const toggleAuthBtn = document.getElementById('toggleAuthMode');
-        const authBtn = document.getElementById('authBtn');
-
-        toggleAuthBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            isLoginMode = !isLoginMode;
-            authBtn.textContent = isLoginMode ? 'Iniciar Sesión' : 'Registrarse';
-            toggleAuthBtn.textContent = isLoginMode ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia Sesión';
-        });
-
-        authForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('authEmail').value;
-            const pass = document.getElementById('authPass').value;
-            showLoading();
-            try {
-                if (isLoginMode) {
-                    await auth.signInWithEmailAndPassword(email, pass);
-                } else {
-                    await auth.createUserWithEmailAndPassword(email, pass);
-                }
-            } catch (error) {
-                showToast(error.message, 'error');
-            }
-            hideLoading();
-        });
-
-        function logout() { auth.signOut(); }
-
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                document.getElementById('authScreen').classList.add('hidden');
-                document.getElementById('appScreen').classList.remove('hidden');
-                document.getElementById('userEmail').textContent = user.email;
-                cargarVigiladores();
-            } else {
-                document.getElementById('authScreen').classList.remove('hidden');
-                document.getElementById('appScreen').classList.add('hidden');
-            }
-        });
-
-        // ==========================================
-        // 4. CRUD Y BASE DE DATOS
-        // ==========================================
-        async function cargarVigiladores() {
-            showLoading();
-            try {
-                const snapshot = await db.collection('vigiladores').get();
-                vigiladoresData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderTable();
-            } catch (error) {
-                showToast("Error al cargar datos. Revisa las reglas de Firestore.", 'error');
-                console.error(error);
-            }
-            hideLoading();
-        }
-
-        function renderTable() {
-            const search = document.getElementById('searchInput').value.toLowerCase();
-            const tbody = document.getElementById('vigiladoresTableBody');
-            tbody.innerHTML = '';
-
-            const filtrados = vigiladoresData.filter(v => {
-                const fullStr = `${v.personal?.nombre || ''} ${v.personal?.apellido || ''} ${v.personal?.dni || ''}`.toLowerCase();
-                return fullStr.includes(search);
-            });
-
-            // Ordenamos alfabéticamente por apellido y luego nombre
-            filtrados.sort((a, b) => {
-                let nameA = (a.personal?.apellido || '') + (a.personal?.nombre || '');
-                let nameB = (b.personal?.apellido || '') + (b.personal?.nombre || '');
-                return nameA.localeCompare(nameB);
-            });
-
-            filtrados.forEach(v => {
-                const p = v.personal || {};
-                const name = `${p.apellido || ''}, ${p.nombre || ''}`;
-                const fotoSrc = p.foto || 'https://via.placeholder.com/40';
-                const tieneSanciones = (v.disciplina && v.disciplina.length > 0);
-                const leg = v.laborales?.legajo || '-';
-
-                const tr = document.createElement('tr');
-                tr.className = 'border-b hover:bg-gray-50';
-                tr.innerHTML = `
-                    <td class="p-3"><img src="${fotoSrc}" class="w-10 h-10 rounded-full object-cover border"></td>
-                    <td class="p-3 font-bold text-gray-600">${leg}</td>
-                    <td class="p-3 font-medium text-gray-800">${name}</td>
-                    <td class="p-3 text-gray-600">${p.dni || '-'}</td>
-                    <td class="p-3 text-gray-600">${v.laborales?.categoria || '-'}</td>
-                    <td class="p-3 text-center">
-                        ${tieneSanciones ? '<span class="text-red-500" title="Tiene sanciones"><i class="fa-solid fa-triangle-exclamation"></i> Sancionado</span>' : '<span class="text-green-500"><i class="fa-solid fa-check-circle"></i> OK</span>'}
-                    </td>
-                    <td class="p-3 text-center">
-                        <button onclick="editarVigilador('${v.id}')" class="text-blue-500 hover:text-blue-700 mr-3" title="Editar"><i class="fa-solid fa-pen"></i></button>
-                        <button onclick="eliminarVigilador('${v.id}')" class="text-red-500 hover:text-red-700" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        async function guardarVigilador() {
-            const p = {
-                nombre: document.getElementById('v_nombre').value,
-                apellido: document.getElementById('v_apellido').value,
-                dni: document.getElementById('v_dni').value,
-                fechaNacimiento: document.getElementById('v_fechanac').value,
-                estadoCivil: document.getElementById('v_estadocivil').value,
-                madre: document.getElementById('v_madre').value,
-                padre: document.getElementById('v_padre').value,
-                domicilio: document.getElementById('v_domicilio').value,
-                cp: document.getElementById('v_cp').value,
-                telefono: document.getElementById('v_telefono').value,
-                email: document.getElementById('v_email').value,
-                foto: currentFotoBase64
-            };
-            const hab = {
-                tipo: document.getElementById('v_hab_tipo').value,
-                numero: document.getElementById('v_hab_numero').value,
-                vencimiento: document.getElementById('v_hab_vto').value,
-                organismo: document.getElementById('v_hab_org').value
-            };
-            const lab = {
-                legajo: document.getElementById('v_legajo').value,
-                ingreso: document.getElementById('v_ingreso').value,
-                categoria: document.getElementById('v_categoria').value,
-                horario: document.getElementById('v_horario').value,
-                obraSocial: document.getElementById('v_obrasocial').value,
-                sindicato: document.getElementById('v_sindicato').value,
-                cuil: document.getElementById('v_cuil').value,
-                banco: document.getElementById('v_banco').value,
-                cuenta: document.getElementById('v_cuenta').value,
-                cbu: document.getElementById('v_cbu').value
-            };
-            const ropa = {
-                camisa: { talle: document.getElementById('v_ropa_camisa_t').value, cant: document.getElementById('v_ropa_camisa_c').value },
-                pantalon: { talle: document.getElementById('v_ropa_pantalon_t').value, cant: document.getElementById('v_ropa_pantalon_c').value },
-                tricota: { talle: document.getElementById('v_ropa_tricota_t').value, cant: document.getElementById('v_ropa_tricota_c').value },
-                campera: { talle: document.getElementById('v_ropa_campera_t').value, cant: document.getElementById('v_ropa_campera_c').value },
-                cinto: { talle: document.getElementById('v_ropa_cinto_t').value, cant: document.getElementById('v_ropa_cinto_c').value },
-                corbatas: document.getElementById('v_ropa_corbata_c').value,
-                calzado: document.getElementById('v_ropa_calzado').value
-            };
-            const rrhh = { observaciones: document.getElementById('v_observaciones').value };
-
-            const dataToSave = {
-                personal: p,
-                habilitaciones: hab,
-                laborales: lab,
-                ropa: ropa,
-                rrhh: rrhh,
-                disciplina: currentSanciones
-            };
-
-            showLoading();
-            try {
-                if (currentEditingId) {
-                    await db.collection('vigiladores').doc(currentEditingId).set(dataToSave, { merge: true });
-                    showToast('Vigilador actualizado');
-                } else {
-                    await db.collection('vigiladores').add(dataToSave);
-                    showToast('Vigilador creado exitosamente');
-                }
-                closeModal();
-                cargarVigiladores();
-            } catch (error) {
-                showToast(error.message, 'error');
-            }
-            hideLoading();
-        }
-
-        async function eliminarVigilador(id) {
-            if (confirm('¿Seguro que deseas eliminar este vigilador? Esta acción no se puede deshacer.')) {
-                showLoading();
-                try {
-                    await db.collection('vigiladores').doc(id).delete();
-                    showToast('Eliminado correctamente');
-                    cargarVigiladores();
-                } catch (e) {
-                    showToast(e.message, 'error');
-                }
-                hideLoading();
-            }
-        }
-
-        // ==========================================
-        // 5. LÓGICA DE MODAL Y TABS
-        // ==========================================
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            event.target.classList.add('active');
-        }
-
-        function openModal() {
-            limpiarFormulario();
-            document.getElementById('modalTitle').textContent = 'Nuevo Vigilador';
-            document.getElementById('vigiladorModal').classList.remove('hidden');
-            
-            // Activar la primera tab por defecto
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-personal').classList.add('active');
-            document.querySelector('.tab-btn').classList.add('active'); // Selecciona el primer botón
-        }
-
-        function closeModal() {
-            document.getElementById('vigiladorModal').classList.add('hidden');
-        }
-
-        function limpiarFormulario() {
-            currentEditingId = null;
-            currentFotoBase64 = "";
-            currentSanciones = [];
-            document.getElementById('previewFoto').src = 'https://via.placeholder.com/64';
-            const inputs = document.querySelectorAll('#formContainer input, #formContainer select, #formContainer textarea');
-            inputs.forEach(input => {
-                if(input.type === 'file') input.value = '';
-                else input.value = '';
-            });
-            // Restaurar selects por defecto
-            document.getElementById('v_categoria').value = 'Vigilador';
-            document.getElementById('v_estadocivil').value = 'SOLTERO';
-            renderSanciones();
-        }
-
-        function editarVigilador(id) {
-            const v = vigiladoresData.find(x => x.id === id);
-            if (!v) return;
-            
-            limpiarFormulario();
-            currentEditingId = id;
-            document.getElementById('modalTitle').textContent = 'Editar Vigilador';
-            
-            // Llenar campos
-            const p = v.personal || {};
-            document.getElementById('v_nombre').value = p.nombre || '';
-            document.getElementById('v_apellido').value = p.apellido || '';
-            document.getElementById('v_dni').value = p.dni || '';
-            document.getElementById('v_fechanac').value = p.fechaNacimiento || '';
-            
-            // Asegurarse de que el Select de estado civil tome el valor correcto independientemente de mayúsculas
-            if (p.estadoCivil) {
-                const estado = p.estadoCivil.toUpperCase();
-                const selectEstado = document.getElementById('v_estadocivil');
-                let optionExists = Array.from(selectEstado.options).some(opt => opt.value === estado);
-                if(optionExists) selectEstado.value = estado;
-            }
-
-            document.getElementById('v_madre').value = p.madre || '';
-            document.getElementById('v_padre').value = p.padre || '';
-            document.getElementById('v_domicilio').value = p.domicilio || '';
-            document.getElementById('v_cp').value = p.cp || '';
-            document.getElementById('v_telefono').value = p.telefono || '';
-            document.getElementById('v_email').value = p.email || '';
-            
-            if (p.foto) {
-                currentFotoBase64 = p.foto;
-                document.getElementById('previewFoto').src = p.foto;
-            }
-
-            const hab = v.habilitaciones || {};
-            document.getElementById('v_hab_tipo').value = hab.tipo || '';
-            document.getElementById('v_hab_numero').value = hab.numero || '';
-            document.getElementById('v_hab_vto').value = hab.vencimiento || '';
-            document.getElementById('v_hab_org').value = hab.organismo || '';
-
-            const lab = v.laborales || {};
-            document.getElementById('v_legajo').value = lab.legajo || '';
-            document.getElementById('v_ingreso').value = lab.ingreso || '';
-            document.getElementById('v_categoria').value = lab.categoria || 'Vigilador';
-            document.getElementById('v_horario').value = lab.horario || '';
-            document.getElementById('v_obrasocial').value = lab.obraSocial || '';
-            document.getElementById('v_sindicato').value = lab.sindicato || '';
-            document.getElementById('v_cuil').value = lab.cuil || '';
-            document.getElementById('v_banco').value = lab.banco || '';
-            document.getElementById('v_cuenta').value = lab.cuenta || '';
-            document.getElementById('v_cbu').value = lab.cbu || '';
-
-            const ro = v.ropa || {};
-            document.getElementById('v_ropa_camisa_t').value = ro.camisa?.talle || '';
-            document.getElementById('v_ropa_camisa_c').value = ro.camisa?.cant || '';
-            document.getElementById('v_ropa_pantalon_t').value = ro.pantalon?.talle || '';
-            document.getElementById('v_ropa_pantalon_c').value = ro.pantalon?.cant || '';
-            document.getElementById('v_ropa_tricota_t').value = ro.tricota?.talle || '';
-            document.getElementById('v_ropa_tricota_c').value = ro.tricota?.cant || '';
-            document.getElementById('v_ropa_campera_t').value = ro.campera?.talle || '';
-            document.getElementById('v_ropa_campera_c').value = ro.campera?.cant || '';
-            document.getElementById('v_ropa_cinto_t').value = ro.cinto?.talle || '';
-            document.getElementById('v_ropa_cinto_c').value = ro.cinto?.cant || '';
-            document.getElementById('v_ropa_corbata_c').value = ro.corbatas || '';
-            document.getElementById('v_ropa_calzado').value = ro.calzado || '';
-
-            document.getElementById('v_observaciones').value = v.rrhh?.observaciones || '';
-            
-            currentSanciones = v.disciplina || [];
-            renderSanciones();
-
-            document.getElementById('vigiladorModal').classList.remove('hidden');
-            
-            // Activar la primera tab por defecto
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-personal').classList.add('active');
-            document.querySelector('.tab-btn').classList.add('active');
-        }
-
-        // ==========================================
-        // 6. UTILIDADES ESPECÍFICAS
-        // ==========================================
-        function convertPhoto(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                currentFotoBase64 = ev.target.result;
-                document.getElementById('previewFoto').src = currentFotoBase64;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function agregarSancionUI() {
-            const fecha = document.getElementById('ds_fecha').value;
-            const dias = document.getElementById('ds_dias').value;
-            const servicio = document.getElementById('ds_servicio').value;
-            const motivo = document.getElementById('ds_motivo').value;
-
-            if (!fecha || !motivo) return showToast('Fecha y Motivo son obligatorios', 'warning');
-            
-            currentSanciones.push({ fecha, dias, servicio, motivo });
-            document.getElementById('ds_fecha').value = '';
-            document.getElementById('ds_dias').value = '';
-            document.getElementById('ds_servicio').value = '';
-            document.getElementById('ds_motivo').value = '';
-            renderSanciones();
-        }
-
-        function removerSancion(index) {
-            currentSanciones.splice(index, 1);
-            renderSanciones();
-        }
-
-        function renderSanciones() {
-            const body = document.getElementById('sancionesTableBody');
-            body.innerHTML = '';
-            currentSanciones.forEach((s, i) => {
-                body.innerHTML += `
-                    <tr class="border-b">
-                        <td class="p-2">${s.fecha}</td>
-                        <td class="p-2">${s.dias}</td>
-                        <td class="p-2">${s.servicio}</td>
-                        <td class="p-2">${s.motivo}</td>
-                        <td class="p-2 text-right">
-                            <button onclick="removerSancion(${i})" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `;
-            });
-        }
-
-        // ==========================================
-        // 7. IMPORTACIÓN DESDE EXCEL (SHEETJS) - CORREGIDO PARA ALTAS.XLSX
-        // ==========================================
-        async function handleImportAltas(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            showLoading();
-            
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    
-                    if (!workbook.SheetNames.includes("ALTAS")) {
-                        throw new Error("El archivo no contiene una hoja llamada 'ALTAS'");
-                    }
-
-                    const sheet = workbook.Sheets["ALTAS"];
-                    
-                    // range: 5 indica que las columnas reales empiezan en la fila 6 de excel.
-                    // raw: false, dateNF: "yyyy-mm-dd" pre-formatea las fechas automáticamente
-                    const json = XLSX.utils.sheet_to_json(sheet, { range: 5, raw: false, dateNF: "yyyy-mm-dd" });
-                    
-                    let importCount = 0;
-                    
-                    for (const row of json) {
-                        // Evita procesar filas totalmente vacías
-                        if (!row["DNI"]) continue;
-
-                        // 1. Separar "Apellido, Nombre"
-                        let fullName = row["Nombre y Apellido"] || "";
-                        let apellido = "";
-                        let nombre = "";
-                        if (fullName.includes(",")) {
-                            let partes = fullName.split(",");
-                            apellido = partes[0].trim();
-                            nombre = partes[1].trim();
-                        } else {
-                            nombre = fullName.trim(); 
-                        }
-
-                        // 2. Normalizar fechas a formato YYYY-MM-DD
-                        const formatearFecha = (fechaRaw) => {
-                            if(!fechaRaw) return "";
-                            if(typeof fechaRaw === 'string') {
-                                // Convertir DD/MM/YYYY a YYYY-MM-DD si viene en formato barra
-                                if (fechaRaw.includes("/")) {
-                                    let f = fechaRaw.split("/");
-                                    if(f.length === 3) return `${f[2]}-${f[1].padStart(2, '0')}-${f[0].padStart(2, '0')}`;
-                                }
-                                return fechaRaw;
-                            }
-                            return "";
-                        };
-
-                        // 3. Mapear los campos leídos a la estructura
-                        const newGuard = {
-                            personal: {
-                                nombre: nombre,
-                                apellido: apellido,
-                                // Eliminar puntos del DNI si existieran
-                                dni: String(row["DNI"] || "").replace(/\D/g, ''),
-                                fechaNacimiento: formatearFecha(row["F.NACIMIENTO"]),
-                                estadoCivil: (row["ESTADO CIVIL"] || "").toUpperCase(),
-                                madre: row["N. MADRE"] || "",
-                                padre: row["N. PADRE"] || "",
-                                domicilio: row["Domicilio"] || "",
-                                cp: String(row["C.P."] || ""),
-                                // Priorizar celular frente a teléfono
-                                telefono: String(row["Celular"] || row["Telefono"] || ""),
-                                email: row["MAIL"] || "",
-                                foto: ""
-                            },
-                            laborales: {
-                                legajo: String(row["Nº Legajo"] || ""),
-                                ingreso: formatearFecha(row["Fecha Alta"]),
-                                categoria: "Vigilador", // Categoría por defecto
-                                cuil: String(row["CUIL"] || ""),
-                                banco: row["BANCO"] || "",
-                                cuenta: String(row["N° CUENTA"] || ""),
-                                cbu: String(row["N°CBU"] || ""),
-                                obraSocial: row["OBRA SOCIAL"] || "",
-                                horario: "",
-                                sindicato: ""
-                            },
-                            habilitaciones: { tipo: "", numero: "", vencimiento: "", organismo: "" },
-                            ropa: {
-                                camisa: { talle: "", cant: "" }, pantalon: { talle: "", cant: "" },
-                                tricota: { talle: "", cant: "" }, campera: { talle: "", cant: "" },
-                                cinto: { talle: "", cant: "" }, corbatas: "", calzado: ""
-                            },
-                            rrhh: { observaciones: "" },
-                            disciplina: []
-                        };
-                        
-                        // Guardar en Firestore
-                        await db.collection('vigiladores').add(newGuard);
-                        importCount++;
-                    }
-                    
-                    showToast(`Se importaron ${importCount} altas correctamente`);
-                    cargarVigiladores();
-                    
-                } catch (error) {
-                    console.error(error);
-                    showToast("Error en importación: " + error.message, 'error');
-                }
-                hideLoading();
-                event.target.value = ''; // Reset input file
-            };
-            
-            reader.readAsArrayBuffer(file);
-        }
-
-        async function handleImportSanciones(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            showLoading();
-
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    let totalSanciones = 0;
-
-                    // Cada hoja = Nombre del vigilador
-                    for (const sheetName of workbook.SheetNames) {
-                        const sheet = workbook.Sheets[sheetName];
-                        const rows = XLSX.utils.sheet_to_json(sheet);
-                        
-                        // Buscar el vigilador (ignorando mayúsculas/espacios extra)
-                        const searchName = sheetName.trim().toLowerCase();
-                        const vigilador = vigiladoresData.find(v => {
-                            const vName = `${v.personal.apellido} ${v.personal.nombre}`.trim().toLowerCase();
-                            const vNameRev = `${v.personal.nombre} ${v.personal.apellido}`.trim().toLowerCase();
-                            return vName === searchName || vNameRev === searchName;
-                        });
-
-                        if (vigilador && rows.length > 0) {
-                            const nuevasSanciones = rows.map(r => ({
-                                fecha: r["FECHA"] || r["Fecha"] || "",
-                                motivo: r["MOTIVO"] || r["Motivo"] || "",
-                                dias: r["DIAS"] || r["Dias"] || r["Castigo"] || "",
-                                servicio: r["SERVICIO"] || r["Servicio"] || ""
-                            })).filter(s => s.fecha && s.motivo); // Solo las válidas
-
-                            if (nuevasSanciones.length > 0) {
-                                await db.collection('vigiladores').doc(vigilador.id).update({
-                                    disciplina: firebase.firestore.FieldValue.arrayUnion(...nuevasSanciones)
-                                });
-                                totalSanciones += nuevasSanciones.length;
-                            }
-                        }
-                    }
-                    showToast(`Se importaron ${totalSanciones} sanciones en total`);
-                    cargarVigiladores();
-                } catch (error) {
-                    showToast(error.message, 'error');
-                }
-                hideLoading();
-                event.target.value = ''; // Reset
-            };
-            reader.readAsArrayBuffer(file);
-        }
-    </script>
+      }
+    }
+  -->
 </body>
 </html>
