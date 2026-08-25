@@ -1,0 +1,1355 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gestión de Vigiladores - Seguridad Privada</title>
+
+  <!--
+    Archivo único HTML autocontenido.
+    - Reemplazar firebaseConfig con las credenciales del proyecto Firebase.
+    - Cambiar ADMIN_EMAIL si desea que otro usuario tenga permisos de administrador para importaciones Excel.
+    - Este archivo usa Firebase v9 compat (CDN) y SheetJS (XLSX) desde CDN.
+    - Firestore Rules sugeridas están al final del archivo (comentadas y también mostradas en la UI).
+  -->
+
+  <!-- Firebase v9+ compat (CDN) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <!-- SheetJS (XLSX) -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+  <style>
+    /* ====== CSS: diseño limpio, moderno y responsivo ====== */
+    :root{
+      --bg:#f6f8fb;
+      --card:#ffffff;
+      --accent:#0b5cff;
+      --muted:#6b7280;
+      --danger:#e11d48;
+      --success:#059669;
+      --glass: rgba(255,255,255,0.6);
+      --shadow: 0 6px 18px rgba(15,23,42,0.08);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background:linear-gradient(180deg,#eef2ff 0%, var(--bg) 100%);
+      min-height:100vh;
+      color:#0f172a;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:14px 20px;
+      gap:12px;
+      background:transparent;
+      position:sticky;
+      top:0;
+      z-index:40;
+      backdrop-filter: blur(6px);
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{
+      width:44px;height:44px;border-radius:8px;background:var(--card);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);
+      font-weight:700;color:var(--accent)
+    }
+    .title{font-weight:600}
+    main{padding:18px;max-width:1200px;margin:0 auto}
+    .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:var(--shadow);margin-bottom:16px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .btn{
+      background:var(--accent);color:#fff;padding:8px 12px;border-radius:8px;border:0;cursor:pointer;font-weight:600;
+      display:inline-flex;align-items:center;gap:8px;
+    }
+    .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(11,92,255,0.12)}
+    .btn.warn{background:var(--danger)}
+    .btn.small{padding:6px 8px;font-size:14px}
+    .search{flex:1;display:flex;gap:8px;align-items:center}
+    .search input{flex:1;padding:10px;border-radius:10px;border:1px solid #e6e9ef;background:transparent}
+    .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:12px}
+    .item{display:flex;gap:12px;align-items:center;padding:10px;border-radius:10px;border:1px solid #eef2f8}
+    .avatar{width:56px;height:56px;border-radius:8px;background:linear-gradient(135deg,#eef2ff,#fff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);overflow:hidden}
+    .meta{flex:1}
+    .meta h4{margin:0;font-size:16px}
+    .meta p{margin:2px 0 0;color:var(--muted);font-size:13px}
+    .icon{font-size:18px;color:var(--muted)}
+    .badge{background:#fff;padding:6px;border-radius:8px;border:1px solid #f1f5f9;color:var(--muted);font-weight:600}
+    .has-sanc{color:var(--danger);font-weight:700}
+    .filters{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .filter-chip{padding:6px 8px;border-radius:8px;background:#f8fafc;border:1px solid #eef2f6;color:var(--muted);cursor:pointer}
+    /* Modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.45);display:none;align-items:center;justify-content:center;z-index:60}
+    .modal{width:95%;max-width:980px;background:var(--card);border-radius:12px;padding:12px;box-shadow:0 20px 50px rgba(2,6,23,0.4);max-height:90vh;overflow:auto}
+    .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+    .tab{padding:8px 10px;border-radius:8px;background:#f8fafc;border:1px solid #eef2f6;cursor:pointer}
+    .tab.active{background:var(--accent);color:#fff}
+    .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input[type="text"],input[type="email"],input[type="date"],input[type="number"],select,textarea{
+      width:100%;padding:8px;border-radius:8px;border:1px solid #e6e9ef;background:transparent;
+    }
+    textarea{min-height:80px;resize:vertical}
+    .row{display:flex;gap:8px}
+    .right{display:flex;gap:8px;align-items:center}
+    .small-muted{font-size:12px;color:var(--muted)}
+    /* Toast */
+    .toast{position:fixed;right:18px;bottom:18px;background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:var(--shadow);display:none;z-index:80}
+    .spinner{width:18px;height:18px;border-radius:50%;border:3px solid rgba(255,255,255,0.2);border-top-color:#fff;animation:spin 1s linear infinite;display:inline-block}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    /* Responsive */
+    @media (max-width:640px){
+      .list{grid-template-columns:1fr}
+      .avatar{width:48px;height:48px}
+    }
+    /* Footer small */
+    footer{padding:12px;text-align:center;color:var(--muted);font-size:13px}
+    .hidden{display:none}
+    .preview-img{max-width:120px;border-radius:8px;border:1px solid #eef2f6}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{padding:8px;border-bottom:1px solid #f1f5f9;text-align:left;font-size:13px}
+    .danger-text{color:var(--danger)}
+    .success-text{color:var(--success)}
+    .muted{color:var(--muted)}
+    .file-input{display:none}
+    .link-like{color:var(--accent);cursor:pointer;text-decoration:underline}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">SP</div>
+      <div>
+        <div class="title">Gestión de Vigiladores</div>
+        <div class="small-muted">Seguridad Privada - Argentina</div>
+      </div>
+    </div>
+    <div class="right">
+      <div id="userEmail" class="small-muted"></div>
+      <button id="btnLogout" class="btn ghost small hidden">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Login / Register Card -->
+    <div id="authCard" class="card" style="max-width:520px;margin:18px auto;">
+      <h3 id="authTitle">Iniciar sesión</h3>
+      <div id="authForms">
+        <div id="loginForm">
+          <label>Email</label>
+          <input id="loginEmail" type="email" placeholder="usuario@empresa.com" />
+          <label>Contraseña</label>
+          <input id="loginPass" type="password" placeholder="Contraseña" />
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button id="btnLogin" class="btn">Iniciar sesión</button>
+            <button id="btnShowRegister" class="btn ghost">Registrarse</button>
+          </div>
+        </div>
+
+        <div id="registerForm" class="hidden">
+          <label>Nombre</label>
+          <input id="regName" type="text" placeholder="Nombre" />
+          <label>Email</label>
+          <input id="regEmail" type="email" placeholder="usuario@empresa.com" />
+          <label>Contraseña</label>
+          <input id="regPass" type="password" placeholder="Contraseña (mín 6 caracteres)" />
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button id="btnRegister" class="btn">Crear cuenta</button>
+            <button id="btnShowLogin" class="btn ghost">Volver</button>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px;font-size:13px;color:var(--muted)">
+        <strong>Nota:</strong> Esta demo usa Firebase Authentication y Firestore. Reemplaza la configuración de Firebase en el código.
+      </div>
+    </div>
+
+    <!-- App UI (visible cuando está autenticado) -->
+    <div id="appUI" class="hidden">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="flex:1">
+            <div class="controls">
+              <div class="search" style="min-width:220px">
+                <input id="searchInput" placeholder="Buscar por nombre, apellido o DNI..." />
+                <button id="btnFilters" class="btn ghost small">Filtros</button>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button id="btnNew" class="btn">Nuevo Vigilador</button>
+                <label class="btn ghost small" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer">
+                  Importar Altas
+                  <input id="fileAltas" class="file-input" type="file" accept=".xlsx,.xls" />
+                </label>
+                <label class="btn ghost small" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer" id="suspLabel">
+                  Importar Suspensiones
+                  <input id="fileSusp" class="file-input" type="file" accept=".xlsx,.xls" />
+                </label>
+                <button id="btnExportJSON" class="btn ghost small">Exportar JSON</button>
+                <button id="btnImportJSON" class="btn ghost small">Importar JSON</button>
+                <input id="fileJSON" type="file" accept=".json" class="file-input" />
+              </div>
+            </div>
+            <div class="filters" id="activeFilters"></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div id="stats" class="small-muted"></div>
+          </div>
+        </div>
+
+        <div id="listContainer">
+          <div class="list" id="vigilList"></div>
+        </div>
+      </div>
+
+      <!-- Advanced Filters Modal (simple implementation) -->
+      <div id="filtersModal" class="modal-backdrop">
+        <div class="modal">
+          <h3>Filtros avanzados</h3>
+          <div class="form-grid">
+            <div>
+              <label>Habilitación (tipo)</label>
+              <select id="filterHabilTipo">
+                <option value="">--</option>
+                <option>Provincia</option>
+                <option>CABA</option>
+              </select>
+            </div>
+            <div>
+              <label>Categoría laboral</label>
+              <select id="filterCategoria">
+                <option value="">--</option>
+                <option>Vigilador</option>
+                <option>Vigilador Senior</option>
+                <option>Supervisor</option>
+                <option>Jefe de Seguridad</option>
+              </select>
+            </div>
+            <div>
+              <label>¿Tiene sanciones?</label>
+              <select id="filterSanc">
+                <option value="">--</option>
+                <option value="yes">Sí</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div>
+              <label>Talla camisa</label>
+              <select id="filterCamisa">
+                <option value="">--</option>
+                <!-- talles 36-60 -->
+                <script>for(let t=36;t<=60;t++){document.write(`<option value="${t}">${t}</option>`)};</script>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+            <button id="applyFilters" class="btn">Aplicar</button>
+            <button id="clearFilters" class="btn ghost">Limpiar</button>
+            <button id="closeFilters" class="btn ghost">Cerrar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Create/Edit Modal -->
+      <div id="modalBackdrop" class="modal-backdrop">
+        <div class="modal" role="dialog" aria-modal="true">
+          <h3 id="modalTitle">Nuevo Vigilador</h3>
+          <div class="tabs" id="modalTabs">
+            <div class="tab active" data-tab="personales">Datos Personales</div>
+            <div class="tab" data-tab="habilitaciones">Habilitaciones</div>
+            <div class="tab" data-tab="laborales">Datos Laborales</div>
+            <div class="tab" data-tab="ropa">Ropa de Trabajo</div>
+            <div class="tab" data-tab="rrhh">RR.HH.</div>
+            <div class="tab" data-tab="disciplina">Disciplina</div>
+          </div>
+
+          <div id="tabContent">
+            <!-- Datos Personales -->
+            <div class="tabPane" id="personales">
+              <div style="display:flex;gap:12px;align-items:flex-start">
+                <div style="flex:1">
+                  <div class="form-grid">
+                    <div>
+                      <label>Nombre</label>
+                      <input id="p_nombre" type="text" />
+                    </div>
+                    <div>
+                      <label>Apellido</label>
+                      <input id="p_apellido" type="text" />
+                    </div>
+                    <div>
+                      <label>DNI</label>
+                      <input id="p_dni" type="text" />
+                    </div>
+                    <div>
+                      <label>Fecha de nacimiento</label>
+                      <input id="p_fnac" type="date" />
+                    </div>
+                    <div>
+                      <label>Estado civil</label>
+                      <input id="p_estado_civil" type="text" />
+                    </div>
+                    <div>
+                      <label>Nombre de la madre</label>
+                      <input id="p_madre" type="text" />
+                    </div>
+                    <div>
+                      <label>Nombre del padre</label>
+                      <input id="p_padre" type="text" />
+                    </div>
+                    <div>
+                      <label>Domicilio</label>
+                      <input id="p_domicilio" type="text" />
+                    </div>
+                    <div>
+                      <label>Código postal</label>
+                      <input id="p_cp" type="text" />
+                    </div>
+                    <div>
+                      <label>Teléfono</label>
+                      <input id="p_telefono" type="text" />
+                    </div>
+                    <div>
+                      <label>Email</label>
+                      <input id="p_email" type="email" />
+                    </div>
+                  </div>
+                </div>
+                <div style="width:180px;text-align:center">
+                  <label>Foto de perfil</label>
+                  <div style="margin:8px 0">
+                    <img id="previewPhoto" class="preview-img" src="" alt="preview" />
+                  </div>
+                  <input id="photoInput" type="file" accept="image/*" />
+                  <div class="small-muted" style="margin-top:8px">Se guarda en Firestore como base64</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Habilitaciones -->
+            <div class="tabPane hidden" id="habilitaciones">
+              <div id="habilList"></div>
+              <div style="margin-top:8px">
+                <h4>Añadir habilitación</h4>
+                <div class="form-grid">
+                  <div>
+                    <label>Tipo</label>
+                    <select id="h_tipo"><option>Provincia</option><option>CABA</option></select>
+                  </div>
+                  <div>
+                    <label>Número</label>
+                    <input id="h_num" type="text" />
+                  </div>
+                  <div>
+                    <label>Fecha de vencimiento</label>
+                    <input id="h_venc" type="date" />
+                  </div>
+                  <div>
+                    <label>Organismo</label>
+                    <input id="h_org" type="text" />
+                  </div>
+                </div>
+                <div style="margin-top:8px">
+                  <button id="addHabil" class="btn">Agregar</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Datos Laborales -->
+            <div class="tabPane hidden" id="laborales">
+              <div class="form-grid">
+                <div>
+                  <label>Legajo</label>
+                  <input id="l_legajo" type="text" />
+                </div>
+                <div>
+                  <label>Fecha de ingreso</label>
+                  <input id="l_ingreso" type="date" />
+                </div>
+                <div>
+                  <label>Categoría</label>
+                  <select id="l_categoria">
+                    <option>Vigilador</option>
+                    <option>Vigilador Senior</option>
+                    <option>Supervisor</option>
+                    <option>Jefe de Seguridad</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Horario</label>
+                  <input id="l_horario" type="text" />
+                </div>
+                <div>
+                  <label>Obra social</label>
+                  <input id="l_obra" type="text" />
+                </div>
+                <div>
+                  <label>Sindicato</label>
+                  <input id="l_sindicato" type="text" />
+                </div>
+                <div>
+                  <label>CUIL</label>
+                  <input id="l_cuil" type="text" />
+                </div>
+                <div>
+                  <label>Banco</label>
+                  <input id="l_banco" type="text" />
+                </div>
+                <div>
+                  <label>Número de cuenta</label>
+                  <input id="l_cuenta" type="text" />
+                </div>
+                <div>
+                  <label>CBU</label>
+                  <input id="l_cbu" type="text" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Ropa de Trabajo -->
+            <div class="tabPane hidden" id="ropa">
+              <div class="form-grid">
+                <div>
+                  <label>Talla camisa</label>
+                  <select id="r_camisa_t">
+                    <option value="">--</option>
+                    <script>for(let t=36;t<=60;t++){document.write(`<option value="${t}">${t}</option>`)};</script>
+                  </select>
+                </div>
+                <div>
+                  <label>Cantidad camisa</label>
+                  <input id="r_camisa_q" type="number" min="1" max="4" />
+                </div>
+                <div>
+                  <label>Talla pantalón</label>
+                  <select id="r_pantalon_t">
+                    <option value="">--</option>
+                    <script>for(let t=36;t<=60;t++){document.write(`<option value="${t}">${t}</option>`)};</script>
+                  </select>
+                </div>
+                <div>
+                  <label>Cantidad pantalón</label>
+                  <input id="r_pantalon_q" type="number" min="1" max="4" />
+                </div>
+                <div>
+                  <label>Tricota (talla)</label>
+                  <select id="r_tricota_t"><option></option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select>
+                </div>
+                <div>
+                  <label>Cantidad tricota</label>
+                  <input id="r_tricota_q" type="number" min="1" max="3" />
+                </div>
+                <div>
+                  <label>Campera (talla)</label>
+                  <select id="r_campera_t"><option></option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select>
+                </div>
+                <div>
+                  <label>Cantidad campera</label>
+                  <input id="r_campera_q" type="number" min="1" max="2" />
+                </div>
+                <div>
+                  <label>Cantidad corbata</label>
+                  <input id="r_corbata_q" type="number" min="0" />
+                </div>
+                <div>
+                  <label>Talla calzado</label>
+                  <input id="r_calzado_t" type="text" />
+                </div>
+                <div>
+                  <label>Talla cinturón</label>
+                  <select id="r_cinturon_t">
+                    <option value="">--</option>
+                    <script>for(let t=90;t<=160;t+=10){document.write(`<option value="${t}">${t}</option>`)};</script>
+                  </select>
+                </div>
+                <div>
+                  <label>Cantidad cinturón</label>
+                  <input id="r_cinturon_q" type="number" min="1" max="3" />
+                </div>
+              </div>
+
+              <div style="margin-top:12px">
+                <h4>Entregas</h4>
+                <div id="entregasList"></div>
+                <div style="display:flex;gap:8px;margin-top:8px">
+                  <input id="e_fecha" type="date" />
+                  <input id="e_tipo" type="text" placeholder="Tipo (ej: Camisa, Campera)" />
+                  <button id="addEntrega" class="btn">Agregar</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- RR.HH. -->
+            <div class="tabPane hidden" id="rrhh">
+              <label>Observaciones</label>
+              <textarea id="rr_observaciones"></textarea>
+              <div style="margin-top:12px">
+                <h4>Evaluaciones</h4>
+                <div id="evalList"></div>
+                <div style="display:flex;gap:8px;margin-top:8px">
+                  <input id="ev_fecha" type="date" />
+                  <input id="ev_nota" type="number" min="0" max="10" placeholder="Nota" />
+                  <button id="addEval" class="btn">Agregar</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Disciplina -->
+            <div class="tabPane hidden" id="disciplina">
+              <h4>Sanciones</h4>
+              <div id="sancList"></div>
+              <div style="margin-top:8px">
+                <div class="form-grid">
+                  <div>
+                    <label>Fecha</label>
+                    <input id="s_fecha" type="date" />
+                  </div>
+                  <div>
+                    <label>Días / Apercibimiento</label>
+                    <input id="s_dias" type="text" placeholder="Ej: 3 días / Apercibimiento" />
+                  </div>
+                  <div>
+                    <label>Servicio</label>
+                    <input id="s_servicio" type="text" />
+                  </div>
+                  <div>
+                    <label>Motivo</label>
+                    <input id="s_motivo" type="text" />
+                  </div>
+                </div>
+                <div style="margin-top:8px">
+                  <button id="addSanc" class="btn">Agregar sanción</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+            <button id="saveVigil" class="btn">Guardar</button>
+            <button id="cancelVigil" class="btn ghost">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview / Import Modal -->
+      <div id="importModal" class="modal-backdrop">
+        <div class="modal">
+          <h3 id="importTitle">Importar</h3>
+          <div id="importBody"></div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+            <button id="importConfirm" class="btn">Confirmar</button>
+            <button id="importCancel" class="btn ghost">Cerrar</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="firestoreRulesCard" class="card" style="max-width:1200px;margin:18px auto;">
+      <h4>Reglas sugeridas de Firestore</h4>
+      <pre style="background:#0b1220;color:#dbeafe;padding:12px;border-radius:8px;overflow:auto">
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Solo usuarios autenticados pueden leer y escribir
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+      </pre>
+      <div class="small-muted">Ajustar reglas según necesidades (roles, administradores, validaciones por campo, etc.).</div>
+    </div>
+
+    <footer class="small-muted">Archivo único HTML • Reemplazar configuración de Firebase en el código</footer>
+  </main>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script>
+    /**************************************************************************
+     * CONFIGURACIÓN: Reemplazar con la configuración de Firebase del proyecto
+     * (apiKey, authDomain, projectId, etc.)
+     **************************************************************************/
+    const firebaseConfig = {
+      apiKey: "AIzaSyDBZo39bVcQ3hdhC5FOjYOlwiI-oJ2pCWA",
+      authDomain: "vigiapp-ff701.firebaseapp.com",
+      projectId: "vigiapp-ff701",
+      storageBucket: "vigiapp-ff701.firebasestorage.app",
+      messagingSenderId: "271978217168",
+      appId: "1:271978217168:web:750dab0ca60ac350d1a8d5"
+    };
+
+    // Dirección de administrador (para mostrar botones de importación de Excel).
+    // Cambiar por el email del administrador real.
+    const ADMIN_EMAIL = "adrianmascaro@outlook.com.ar";
+
+    /**************************************************************************
+     * Inicialización Firebase (compat)
+     **************************************************************************/
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    /**************************************************************************
+     * Utilidades UI: toast, spinner, mostrar/ocultar
+     **************************************************************************/
+    const toastEl = document.getElementById('toast');
+    function showToast(msg, timeout=3500, success=true){
+      toastEl.style.display='block';
+      toastEl.style.background = success ? 'linear-gradient(90deg,#059669,#10b981)' : 'linear-gradient(90deg,#ef4444,#f97316)';
+      toastEl.textContent = msg;
+      setTimeout(()=>{ toastEl.style.display='none'; }, timeout);
+    }
+
+    function showModal(id){ document.getElementById(id).style.display='flex'; }
+    function hideModal(id){ document.getElementById(id).style.display='none'; }
+
+    /**************************************************************************
+     * Estado local
+     **************************************************************************/
+    let currentUser = null;
+    let editingId = null; // id del vigilador en edición
+    let tempHabil = []; // habilitaciones temporales en modal
+    let tempEntregas = [];
+    let tempEval = [];
+    let tempSanc = [];
+
+    /**************************************************************************
+     * Autenticación: login, register, logout
+     **************************************************************************/
+    const authCard = document.getElementById('authCard');
+    const appUI = document.getElementById('appUI');
+    const userEmailEl = document.getElementById('userEmail');
+    const btnLogout = document.getElementById('btnLogout');
+
+    document.getElementById('btnShowRegister').addEventListener('click',()=>{
+      document.getElementById('loginForm').classList.add('hidden');
+      document.getElementById('registerForm').classList.remove('hidden');
+      document.getElementById('authTitle').textContent='Registro';
+    });
+    document.getElementById('btnShowLogin').addEventListener('click',()=>{
+      document.getElementById('loginForm').classList.remove('hidden');
+      document.getElementById('registerForm').classList.add('hidden');
+      document.getElementById('authTitle').textContent='Iniciar sesión';
+    });
+
+    document.getElementById('btnLogin').addEventListener('click', async ()=>{
+      const email = document.getElementById('loginEmail').value.trim();
+      const pass = document.getElementById('loginPass').value;
+      if(!email || !pass){ showToast('Completar email y contraseña',3000,false); return; }
+      try{
+        await auth.signInWithEmailAndPassword(email, pass);
+        showToast('Sesión iniciada');
+      }catch(e){ console.error(e); showToast('Error: '+e.message,4000,false); }
+    });
+
+    document.getElementById('btnRegister').addEventListener('click', async ()=>{
+      const name = document.getElementById('regName').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const pass = document.getElementById('regPass').value;
+      if(!name || !email || pass.length<6){ showToast('Completar datos válidos',3000,false); return; }
+      try{
+        const userCred = await auth.createUserWithEmailAndPassword(email, pass);
+        await userCred.user.updateProfile({displayName: name});
+        // Opcional: crear documento de perfil en Firestore
+        await db.collection('users').doc(userCred.user.uid).set({
+          name, email, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast('Cuenta creada y perfil guardado');
+      }catch(e){ console.error(e); showToast('Error: '+e.message,4000,false); }
+    });
+
+    btnLogout.addEventListener('click', async ()=>{
+      await auth.signOut();
+      showToast('Sesión cerrada');
+    });
+
+    auth.onAuthStateChanged(async user=>{
+      currentUser = user;
+      if(user){
+        // Mostrar UI principal
+        authCard.classList.add('hidden');
+        appUI.classList.remove('hidden');
+        btnLogout.classList.remove('hidden');
+        userEmailEl.textContent = user.email || user.displayName || '';
+        // Cargar lista
+        loadVigiladores();
+        // Mostrar botones admin si corresponde
+        if(user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()){
+          document.getElementById('suspLabel').style.display='inline-flex';
+          document.getElementById('fileAltas').parentElement.style.display='inline-flex';
+        } else {
+          document.getElementById('suspLabel').style.display='none';
+          // Altas puede estar permitido para todos; si quiere solo admin, ocultar:
+          // document.getElementById('fileAltas').parentElement.style.display='none';
+        }
+      }else{
+        // Mostrar auth
+        authCard.classList.remove('hidden');
+        appUI.classList.add('hidden');
+        btnLogout.classList.add('hidden');
+        userEmailEl.textContent = '';
+      }
+    });
+
+    /**************************************************************************
+     * LISTA DE VIGILADORES: lectura desde Firestore y render
+     **************************************************************************/
+    const vigilListEl = document.getElementById('vigilList');
+    const statsEl = document.getElementById('stats');
+    let vigilSnapshotUnsub = null;
+    let allVigiladores = []; // cache local
+
+    async function loadVigiladores(){
+      // Mostrar spinner en stats
+      statsEl.innerHTML = '<span class="spinner"></span> Cargando...';
+      // Suscribirse a cambios en la colección "vigiladores"
+      if(vigilSnapshotUnsub) vigilSnapshotUnsub();
+      vigilSnapshotUnsub = db.collection('vigiladores').orderBy('apellido').onSnapshot(snapshot=>{
+        allVigiladores = [];
+        snapshot.forEach(doc=>{
+          const data = doc.data();
+          data._id = doc.id;
+          allVigiladores.push(data);
+        });
+        renderList(allVigiladores);
+        statsEl.textContent = `${allVigiladores.length} vigiladores`;
+      }, err=>{
+        console.error(err);
+        showToast('Error al cargar vigiladores',4000,false);
+      });
+    }
+
+    function renderList(list){
+      vigilListEl.innerHTML = '';
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      const filtered = list.filter(v=>{
+        if(!q) return true;
+        const hay = `${v.nombre||''} ${v.apellido||''} ${v.dni||''}`.toLowerCase();
+        return hay.includes(q);
+      });
+      if(filtered.length===0){
+        vigilListEl.innerHTML = '<div class="card">No se encontraron vigiladores.</div>';
+        return;
+      }
+      filtered.forEach(v=>{
+        const item = document.createElement('div'); item.className='item';
+        const avatar = document.createElement('div'); avatar.className='avatar';
+        if(v.fotoBase64){
+          const img = document.createElement('img'); img.src = v.fotoBase64; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover';
+          avatar.appendChild(img);
+        } else {
+          const initials = document.createElement('div'); initials.textContent = (v.nombre?v.nombre[0]:'') + (v.apellido?v.apellido[0]:'');
+          avatar.appendChild(initials);
+        }
+        const meta = document.createElement('div'); meta.className='meta';
+        const h4 = document.createElement('h4'); h4.textContent = `${v.nombre||''} ${v.apellido||''}`;
+        const p = document.createElement('p'); p.textContent = `DNI: ${v.dni||'--'} • Legajo: ${v.datosLaborales?.legajo||'--'}`;
+        meta.appendChild(h4); meta.appendChild(p);
+
+        const right = document.createElement('div'); right.style.display='flex'; right.style.flexDirection='column'; right.style.alignItems='flex-end'; right.style.gap='6px';
+        const sancIcon = document.createElement('div'); sancIcon.className = v.disciplina && v.disciplina.length ? 'has-sanc' : 'muted';
+        sancIcon.innerHTML = v.disciplina && v.disciplina.length ? '⚠️ Sanciones' : '✅';
+        const actions = document.createElement('div');
+        const btnView = document.createElement('button'); btnView.className='btn small ghost'; btnView.textContent='Ver / Editar';
+        btnView.addEventListener('click',()=> openEditModal(v));
+        const btnDel = document.createElement('button'); btnDel.className='btn small'; btnDel.textContent='Eliminar';
+        btnDel.style.background='#ef4444'; btnDel.addEventListener('click',()=> deleteVigilador(v._id));
+        actions.appendChild(btnView);
+        actions.appendChild(btnDel);
+        right.appendChild(sancIcon);
+        right.appendChild(actions);
+
+        item.appendChild(avatar);
+        item.appendChild(meta);
+        item.appendChild(right);
+        vigilListEl.appendChild(item);
+      });
+    }
+
+    async function deleteVigilador(id){
+      if(!confirm('Eliminar vigilador? Esta acción no se puede deshacer.')) return;
+      try{
+        await db.collection('vigiladores').doc(id).delete();
+        showToast('Vigilador eliminado');
+      }catch(e){ console.error(e); showToast('Error: '+e.message,4000,false); }
+    }
+
+    document.getElementById('searchInput').addEventListener('input',()=> renderList(allVigiladores));
+
+    /**************************************************************************
+     * Modal: creación / edición
+     **************************************************************************/
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const modalTabs = document.querySelectorAll('#modalTabs .tab');
+    const tabPanes = document.querySelectorAll('.tabPane');
+
+    modalTabs.forEach(t=>{
+      t.addEventListener('click',()=>{
+        modalTabs.forEach(x=>x.classList.remove('active'));
+        t.classList.add('active');
+        const tab = t.dataset.tab;
+        tabPanes.forEach(p=>p.classList.add('hidden'));
+        document.getElementById(tab).classList.remove('hidden');
+      });
+    });
+
+    document.getElementById('btnNew').addEventListener('click', ()=> openEditModal(null));
+    document.getElementById('cancelVigil').addEventListener('click', ()=> hideModal('modalBackdrop'));
+
+    function openEditModal(vigil){
+      editingId = null;
+      tempHabil = [];
+      tempEntregas = [];
+      tempEval = [];
+      tempSanc = [];
+      // reset fields
+      document.getElementById('modalTitle').textContent = vigil ? 'Editar Vigilador' : 'Nuevo Vigilador';
+      // Tabs reset
+      modalTabs.forEach(x=>x.classList.remove('active')); modalTabs[0].classList.add('active');
+      tabPanes.forEach(p=>p.classList.add('hidden')); document.getElementById('personales').classList.remove('hidden');
+
+      // Clear inputs
+      const ids = ['p_nombre','p_apellido','p_dni','p_fnac','p_estado_civil','p_madre','p_padre','p_domicilio','p_cp','p_telefono','p_email',
+                   'l_legajo','l_ingreso','l_categoria','l_horario','l_obra','l_sindicato','l_cuil','l_banco','l_cuenta','l_cbu',
+                   'r_camisa_t','r_camisa_q','r_pantalon_t','r_pantalon_q','r_tricota_t','r_tricota_q','r_campera_t','r_campera_q','r_corbata_q','r_calzado_t','r_cinturon_t','r_cinturon_q',
+                   'rr_observaciones'];
+      ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+      document.getElementById('previewPhoto').src='';
+
+      // Clear lists
+      document.getElementById('habilList').innerHTML='';
+      document.getElementById('entregasList').innerHTML='';
+      document.getElementById('evalList').innerHTML='';
+      document.getElementById('sancList').innerHTML='';
+
+      if(vigil){
+        editingId = vigil._id;
+        // populate fields
+        document.getElementById('p_nombre').value = vigil.nombre || '';
+        document.getElementById('p_apellido').value = vigil.apellido || '';
+        document.getElementById('p_dni').value = vigil.dni || '';
+        document.getElementById('p_fnac').value = vigil.fechaNacimiento || '';
+        document.getElementById('p_estado_civil').value = vigil.estadoCivil || '';
+        document.getElementById('p_madre').value = vigil.nombreMadre || '';
+        document.getElementById('p_padre').value = vigil.nombrePadre || '';
+        document.getElementById('p_domicilio').value = vigil.domicilio || '';
+        document.getElementById('p_cp').value = vigil.codigoPostal || '';
+        document.getElementById('p_telefono').value = vigil.telefono || '';
+        document.getElementById('p_email').value = vigil.email || '';
+        if(vigil.fotoBase64) document.getElementById('previewPhoto').src = vigil.fotoBase64;
+
+        // habilitaciones
+        tempHabil = vigil.habilitaciones ? JSON.parse(JSON.stringify(vigil.habilitaciones)) : [];
+        renderHabilList();
+
+        // laborales
+        const lab = vigil.datosLaborales || {};
+        document.getElementById('l_legajo').value = lab.legajo || '';
+        document.getElementById('l_ingreso').value = lab.fechaIngreso || '';
+        document.getElementById('l_categoria').value = lab.categoria || '';
+        document.getElementById('l_horario').value = lab.horario || '';
+        document.getElementById('l_obra').value = lab.obraSocial || '';
+        document.getElementById('l_sindicato').value = lab.sindicato || '';
+        document.getElementById('l_cuil').value = lab.cuil || '';
+        document.getElementById('l_banco').value = lab.banco || '';
+        document.getElementById('l_cuenta').value = lab.numeroCuenta || '';
+        document.getElementById('l_cbu').value = lab.cbu || '';
+
+        // ropa
+        const ropa = vigil.ropaTrabajo || {};
+        document.getElementById('r_camisa_t').value = ropa.camisaTalla || '';
+        document.getElementById('r_camisa_q').value = ropa.camisaCantidad || '';
+        document.getElementById('r_pantalon_t').value = ropa.pantalonTalla || '';
+        document.getElementById('r_pantalon_q').value = ropa.pantalonCantidad || '';
+        document.getElementById('r_tricota_t').value = ropa.tricotaTalla || '';
+        document.getElementById('r_tricota_q').value = ropa.tricotaCantidad || '';
+        document.getElementById('r_campera_t').value = ropa.camperaTalla || '';
+        document.getElementById('r_campera_q').value = ropa.camperaCantidad || '';
+        document.getElementById('r_corbata_q').value = ropa.corbataCantidad || '';
+        document.getElementById('r_calzado_t').value = ropa.calzadoTalla || '';
+        document.getElementById('r_cinturon_t').value = ropa.cinturonTalla || '';
+        document.getElementById('r_cinturon_q').value = ropa.cinturonCantidad || '';
+        tempEntregas = ropa.entregas ? JSON.parse(JSON.stringify(ropa.entregas)) : [];
+        renderEntregas();
+
+        // rrhh
+        const rr = vigil.rrhh || {};
+        document.getElementById('rr_observaciones').value = rr.observaciones || '';
+        tempEval = rr.evaluaciones ? JSON.parse(JSON.stringify(rr.evaluaciones)) : [];
+        renderEvals();
+
+        // disciplina
+        tempSanc = vigil.disciplina ? JSON.parse(JSON.stringify(vigil.disciplina)) : [];
+        renderSanciones();
+      }
+
+      showModal('modalBackdrop');
+    }
+
+    // Photo upload preview -> convert to base64
+    document.getElementById('photoInput').addEventListener('change', async (e)=>{
+      const f = e.target.files[0];
+      if(!f) return;
+      const reader = new FileReader();
+      reader.onload = function(ev){
+        document.getElementById('previewPhoto').src = ev.target.result;
+      };
+      reader.readAsDataURL(f);
+    });
+
+    // Habilitaciones
+    document.getElementById('addHabil').addEventListener('click', ()=>{
+      const tipo = document.getElementById('h_tipo').value;
+      const num = document.getElementById('h_num').value;
+      const venc = document.getElementById('h_venc').value;
+      const org = document.getElementById('h_org').value;
+      if(!num){ showToast('Completar número de habilitación',3000,false); return; }
+      tempHabil.push({tipo, numero:num, fechaVencimiento:venc, organismo:org});
+      renderHabilList();
+    });
+
+    function renderHabilList(){
+      const el = document.getElementById('habilList'); el.innerHTML='';
+      tempHabil.forEach((h,i)=>{
+        const div = document.createElement('div'); div.style.display='flex'; div.style.justifyContent='space-between'; div.style.alignItems='center'; div.style.padding='6px 0';
+        div.innerHTML = `<div><strong>${h.tipo}</strong> ${h.numero} • ${h.organismo || ''} <span class="small-muted">(${h.fechaVencimiento||'--'})</span></div>`;
+        const btn = document.createElement('button'); btn.className='btn small ghost'; btn.textContent='Eliminar'; btn.addEventListener('click',()=>{ tempHabil.splice(i,1); renderHabilList(); });
+        div.appendChild(btn);
+        el.appendChild(div);
+      });
+    }
+
+    // Entregas
+    document.getElementById('addEntrega').addEventListener('click', ()=>{
+      const f = document.getElementById('e_fecha').value;
+      const t = document.getElementById('e_tipo').value;
+      if(!f || !t){ showToast('Completar fecha y tipo de entrega',3000,false); return; }
+      tempEntregas.push({fecha:f,tipo:t});
+      renderEntregas();
+    });
+    function renderEntregas(){
+      const el = document.getElementById('entregasList'); el.innerHTML='';
+      tempEntregas.forEach((e,i)=>{
+        const div = document.createElement('div'); div.style.display='flex'; div.style.justifyContent='space-between'; div.style.padding='6px 0';
+        div.innerHTML = `<div>${e.fecha} • ${e.tipo}</div>`;
+        const btn = document.createElement('button'); btn.className='btn small ghost'; btn.textContent='Eliminar'; btn.addEventListener('click',()=>{ tempEntregas.splice(i,1); renderEntregas(); });
+        div.appendChild(btn);
+        el.appendChild(div);
+      });
+    }
+
+    // Evaluaciones
+    document.getElementById('addEval').addEventListener('click', ()=>{
+      const f = document.getElementById('ev_fecha').value;
+      const n = document.getElementById('ev_nota').value;
+      if(!f || n===''){ showToast('Completar fecha y nota',3000,false); return; }
+      tempEval.push({fecha:f,nota:Number(n)});
+      renderEvals();
+    });
+    function renderEvals(){
+      const el = document.getElementById('evalList'); el.innerHTML='';
+      tempEval.forEach((e,i)=>{
+        const div = document.createElement('div'); div.style.display='flex'; div.style.justifyContent='space-between'; div.style.padding='6px 0';
+        div.innerHTML = `<div>${e.fecha} • Nota: ${e.nota}</div>`;
+        const btn = document.createElement('button'); btn.className='btn small ghost'; btn.textContent='Eliminar'; btn.addEventListener('click',()=>{ tempEval.splice(i,1); renderEvals(); });
+        div.appendChild(btn);
+        el.appendChild(div);
+      });
+    }
+
+    // Sanciones
+    document.getElementById('addSanc').addEventListener('click', ()=>{
+      const f = document.getElementById('s_fecha').value;
+      const d = document.getElementById('s_dias').value;
+      const s = document.getElementById('s_servicio').value;
+      const m = document.getElementById('s_motivo').value;
+      if(!f || !m){ showToast('Completar fecha y motivo',3000,false); return; }
+      tempSanc.push({fecha:f,diasApercibimiento:d,servicio:s,motivo:m});
+      renderSanciones();
+    });
+    function renderSanciones(){
+      const el = document.getElementById('sancList'); el.innerHTML='';
+      tempSanc.forEach((s,i)=>{
+        const div = document.createElement('div'); div.style.display='flex'; div.style.justifyContent='space-between'; div.style.padding='6px 0';
+        div.innerHTML = `<div>${s.fecha} • ${s.diasApercibimiento || ''} • ${s.servicio || ''} • ${s.motivo}</div>`;
+        const btn = document.createElement('button'); btn.className='btn small ghost'; btn.textContent='Eliminar'; btn.addEventListener('click',()=>{ tempSanc.splice(i,1); renderSanciones(); });
+        div.appendChild(btn);
+        el.appendChild(div);
+      });
+    }
+
+    // Guardar vigilador (crear o actualizar)
+    document.getElementById('saveVigil').addEventListener('click', async ()=>{
+      // Recolectar datos
+      const persona = {
+        nombre: document.getElementById('p_nombre').value.trim(),
+        apellido: document.getElementById('p_apellido').value.trim(),
+        dni: document.getElementById('p_dni').value.trim(),
+        fechaNacimiento: document.getElementById('p_fnac').value,
+        estadoCivil: document.getElementById('p_estado_civil').value,
+        nombreMadre: document.getElementById('p_madre').value,
+        nombrePadre: document.getElementById('p_padre').value,
+        domicilio: document.getElementById('p_domicilio').value,
+        codigoPostal: document.getElementById('p_cp').value,
+        telefono: document.getElementById('p_telefono').value,
+        email: document.getElementById('p_email').value
+      };
+      // Foto base64
+      const foto = document.getElementById('previewPhoto').src || null;
+
+      const habilitaciones = tempHabil.slice();
+
+      const datosLaborales = {
+        legajo: document.getElementById('l_legajo').value,
+        fechaIngreso: document.getElementById('l_ingreso').value,
+        categoria: document.getElementById('l_categoria').value,
+        horario: document.getElementById('l_horario').value,
+        obraSocial: document.getElementById('l_obra').value,
+        sindicato: document.getElementById('l_sindicato').value,
+        cuil: document.getElementById('l_cuil').value,
+        banco: document.getElementById('l_banco').value,
+        numeroCuenta: document.getElementById('l_cuenta').value,
+        cbu: document.getElementById('l_cbu').value
+      };
+
+      const ropaTrabajo = {
+        camisaTalla: document.getElementById('r_camisa_t').value,
+        camisaCantidad: document.getElementById('r_camisa_q').value,
+        pantalonTalla: document.getElementById('r_pantalon_t').value,
+        pantalonCantidad: document.getElementById('r_pantalon_q').value,
+        tricotaTalla: document.getElementById('r_tricota_t').value,
+        tricotaCantidad: document.getElementById('r_tricota_q').value,
+        camperaTalla: document.getElementById('r_campera_t').value,
+        camperaCantidad: document.getElementById('r_campera_q').value,
+        corbataCantidad: document.getElementById('r_corbata_q').value,
+        calzadoTalla: document.getElementById('r_calzado_t').value,
+        cinturonTalla: document.getElementById('r_cinturon_t').value,
+        cinturonCantidad: document.getElementById('r_cinturon_q').value,
+        entregas: tempEntregas.slice()
+      };
+
+      const rrhh = {
+        observaciones: document.getElementById('rr_observaciones').value,
+        evaluaciones: tempEval.slice()
+      };
+
+      const disciplina = tempSanc.slice();
+
+      // Validaciones mínimas
+      if(!persona.nombre || !persona.apellido || !persona.dni){ showToast('Nombre, apellido y DNI son obligatorios',3000,false); return; }
+
+      const payload = {
+        ...persona,
+        fotoBase64: foto,
+        habilitaciones,
+        datosLaborales,
+        ropaTrabajo,
+        rrhh,
+        disciplina,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      try{
+        if(editingId){
+          await db.collection('vigiladores').doc(editingId).set(payload, {merge:true});
+          showToast('Vigilador actualizado');
+        } else {
+          payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+          await db.collection('vigiladores').add(payload);
+          showToast('Vigilador creado');
+        }
+        hideModal('modalBackdrop');
+      }catch(e){ console.error(e); showToast('Error: '+e.message,4000,false); }
+    });
+
+    /**************************************************************************
+     * Importar Altas desde Excel (SheetJS)
+     * - Busca hoja "ALTAS"
+     * - Detecta encabezados y mapea columnas comunes
+     **************************************************************************/
+    document.getElementById('fileAltas').addEventListener('change', async (e)=>{
+      const f = e.target.files[0];
+      if(!f) return;
+      const data = await f.arrayBuffer();
+      const workbook = XLSX.read(data, {type:'array'});
+      const sheetName = workbook.SheetNames.find(n => n.toUpperCase().includes('ALTAS')) || workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const json = XLSX.utils.sheet_to_json(sheet, {defval:''});
+      if(!json || json.length===0){ showToast('Hoja ALTAS vacía o no encontrada',4000,false); return; }
+      // Mapear encabezados: buscar columnas comunes
+      const mapped = json.map(row=>{
+        // Intentar detectar nombre/apellido separados o "Nombre y Apellido"
+        const full = row['Nombre y Apellido'] || row['NOMBRE Y APELLIDO'] || row['NombreApellido'] || row['nombre y apellido'] || '';
+        let nombre='', apellido='';
+        if(full){
+          const parts = full.trim().split(' ');
+          apellido = parts.pop();
+          nombre = parts.join(' ');
+        } else {
+          nombre = row['Nombre'] || row['NOMBRE'] || '';
+          apellido = row['Apellido'] || row['APELLIDO'] || '';
+        }
+        return {
+          nombre: nombre || '',
+          apellido: apellido || '',
+          dni: row['DNI'] || row['Dni'] || row['dni'] || '',
+          legajo: row['Legajo'] || row['LEGAJO'] || row['legajo'] || '',
+          email: row['Email'] || row['EMAIL'] || row['email'] || ''
+        };
+      });
+      // Mostrar vista previa de primeros 5
+      const preview = mapped.slice(0,5);
+      let html = '<h4>Vista previa (primeros 5 registros)</h4><table class="table"><thead><tr><th>Nombre</th><th>Apellido</th><th>DNI</th><th>Legajo</th><th>Email</th></tr></thead><tbody>';
+      preview.forEach(r=> html += `<tr><td>${r.nombre}</td><td>${r.apellido}</td><td>${r.dni}</td><td>${r.legajo}</td><td>${r.email}</td></tr>`);
+      html += '</tbody></table>';
+      document.getElementById('importTitle').textContent = 'Importar Altas';
+      document.getElementById('importBody').innerHTML = html;
+      showModal('importModal');
+
+      // Confirmar importación
+      document.getElementById('importConfirm').onclick = async ()=>{
+        hideModal('importModal');
+        // Guardar todos los registros mapeados
+        const batch = db.batch ? db.batch() : null;
+        let created = 0;
+        try{
+          for(const r of mapped){
+            const payload = {
+              nombre: r.nombre,
+              apellido: r.apellido,
+              dni: r.dni,
+              datosLaborales: {legajo: r.legajo},
+              email: r.email,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            await db.collection('vigiladores').add(payload);
+            created++;
+          }
+          showToast(`Importadas ${created} altas`);
+        }catch(e){ console.error(e); showToast('Error importando: '+e.message,4000,false); }
+      };
+      document.getElementById('importCancel').onclick = ()=> hideModal('importModal');
+    });
+
+    /**************************************************************************
+     * Importar Suspensiones desde Excel
+     * - Cada hoja corresponde a un vigilador (nombre de hoja = "Apellido Nombre" o similar)
+     * - Cada hoja tiene encabezados con FECHA, MOTIVO, SERVICIO, DIAS/APERCIBIMIENTO
+     **************************************************************************/
+    document.getElementById('fileSusp').addEventListener('change', async (e)=>{
+      const f = e.target.files[0];
+      if(!f) return;
+      const data = await f.arrayBuffer();
+      const workbook = XLSX.read(data, {type:'array'});
+      const summary = [];
+      for(const sheetName of workbook.SheetNames){
+        const sheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json(sheet, {defval:''});
+        if(!json || json.length===0) continue;
+        // Buscar vigilador por nombre/apellido: intentar varias combinaciones
+        const nameParts = sheetName.trim().split(/\s+/);
+        // Try to find by exact match "Apellido Nombre" or "Nombre Apellido"
+        let found = null;
+        // Search in local cache first
+        for(const v of allVigiladores){
+          const full1 = `${v.apellido} ${v.nombre}`.trim().toLowerCase();
+          const full2 = `${v.nombre} ${v.apellido}`.trim().toLowerCase();
+          if(full1 === sheetName.trim().toLowerCase() || full2 === sheetName.trim().toLowerCase()){
+            found = v; break;
+          }
+        }
+        // If not found, try partial match by last name
+        if(!found){
+          for(const v of allVigiladores){
+            if(v.apellido && sheetName.toLowerCase().includes(v.apellido.toLowerCase())){
+              found = v; break;
+            }
+          }
+        }
+        if(!found){
+          summary.push({sheet: sheetName, status:'No encontrado'});
+          continue;
+        }
+        // Mapear sanciones de la hoja
+        const sanciones = json.map(row=>{
+          return {
+            fecha: row['FECHA'] || row['Fecha'] || row['fecha'] || '',
+            diasApercibimiento: row['DIAS'] || row['DÍAS'] || row['Dias'] || row['Dias/Apercibimiento'] || '',
+            servicio: row['SERVICIO'] || row['Servicio'] || '',
+            motivo: row['MOTIVO'] || row['Motivo'] || row['motivo'] || ''
+          };
+        }).filter(s=>s.fecha || s.motivo);
+        if(sanciones.length===0){
+          summary.push({sheet: sheetName, status:'Sin sanciones en hoja', vigilador: `${found.nombre} ${found.apellido}`});
+          continue;
+        }
+        // Agregar sanciones al vigilador en Firestore (merge)
+        try{
+          const docRef = db.collection('vigiladores').doc(found._id);
+          await docRef.update({
+            disciplina: firebase.firestore.FieldValue.arrayUnion(...sanciones)
+          });
+          summary.push({sheet: sheetName, status:`Agregadas ${sanciones.length}`, vigilador: `${found.nombre} ${found.apellido}`});
+        }catch(e){
+          console.error(e);
+          summary.push({sheet: sheetName, status:'Error: '+e.message});
+        }
+      }
+      // Mostrar resumen
+      let html = '<h4>Resumen de importación de suspensiones</h4><ul>';
+      summary.forEach(s=> html += `<li><strong>${s.sheet}</strong>: ${s.status} ${s.vigilador? ' - ' + s.vigilador : ''}</li>`);
+      html += '</ul>';
+      document.getElementById('importTitle').textContent = 'Importar Suspensiones - Resumen';
+      document.getElementById('importBody').innerHTML = html;
+      showModal('importModal');
+      document.getElementById('importConfirm').onclick = ()=> hideModal('importModal');
+      document.getElementById('importCancel').onclick = ()=> hideModal('importModal');
+    });
+
+    /**************************************************************************
+     * Filtros avanzados (simple)
+     **************************************************************************/
+    document.getElementById('btnFilters').addEventListener('click', ()=> showModal('filtersModal'));
+    document.getElementById('closeFilters').addEventListener('click', ()=> hideModal('filtersModal'));
+    document.getElementById('clearFilters').addEventListener('click', ()=>{
+      document.getElementById('filterHabilTipo').value='';
+      document.getElementById('filterCategoria').value='';
+      document.getElementById('filterSanc').value='';
+      document.getElementById('filterCamisa').value='';
+      document.getElementById('activeFilters').innerHTML='';
+      renderList(allVigiladores);
+      hideModal('filtersModal');
+    });
+    document.getElementById('applyFilters').addEventListener('click', ()=>{
+      const tipo = document.getElementById('filterHabilTipo').value;
+      const cat = document.getElementById('filterCategoria').value;
+      const sanc = document.getElementById('filterSanc').value;
+      const camisa = document.getElementById('filterCamisa').value;
+      const active = document.getElementById('activeFilters'); active.innerHTML='';
+      const filters = [];
+      if(tipo){ filters.push(v=> (v.habilitaciones||[]).some(h=>h.tipo===tipo)); active.innerHTML += `<div class="filter-chip">Habil: ${tipo}</div>`; }
+      if(cat){ filters.push(v=> v.datosLaborales?.categoria === cat); active.innerHTML += `<div class="filter-chip">Cat: ${cat}</div>`; }
+      if(sanc){ if(sanc==='yes') filters.push(v=> (v.disciplina||[]).length>0); else filters.push(v=> (v.disciplina||[]).length===0); active.innerHTML += `<div class="filter-chip">Sanciones: ${sanc}</div>`; }
+      if(camisa){ filters.push(v=> v.ropaTrabajo?.camisaTalla == camisa); active.innerHTML += `<div class="filter-chip">Camisa: ${camisa}</div>`; }
+      const filtered = allVigiladores.filter(v=> filters.every(f=>f(v)));
+      renderList(filtered);
+      hideModal('filtersModal');
+    });
+
+    /**************************************************************************
+     * Exportar / Importar JSON (backup)
+     **************************************************************************/
+    document.getElementById('btnExportJSON').addEventListener('click', async ()=>{
+      try{
+        const snapshot = await db.collection('vigiladores').get();
+        const arr = [];
+        snapshot.forEach(doc=>{ const d = doc.data(); d._id = doc.id; arr.push(d); });
+        const blob = new Blob([JSON.stringify(arr,null,2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'vigiladores_backup.json'; a.click();
+        URL.revokeObjectURL(url);
+        showToast('Exportado JSON');
+      }catch(e){ console.error(e); showToast('Error exportando JSON',4000,false); }
+    });
+
+    document.getElementById('btnImportJSON').addEventListener('click', ()=> {
+      document.getElementById('fileJSON').click();
+    });
+    document.getElementById('fileJSON').addEventListener('change', async (e)=>{
+      const f = e.target.files[0];
+      if(!f) return;
+      const text = await f.text();
+      try{
+        const arr = JSON.parse(text);
+        if(!Array.isArray(arr)){ showToast('JSON inválido',4000,false); return; }
+        // Mostrar preview
+        let html = `<h4>Importar JSON - ${arr.length} registros</h4><div class="small-muted">Se crearán/actualizarán registros según _id si existe.</div><table class="table"><thead><tr><th>Apellido</th><th>Nombre</th><th>DNI</th></tr></thead><tbody>`;
+        arr.slice(0,10).forEach(r=> html += `<tr><td>${r.apellido||''}</td><td>${r.nombre||''}</td><td>${r.dni||''}</td></tr>`);
+        html += '</tbody></table>';
+        document.getElementById('importTitle').textContent = 'Importar JSON';
+        document.getElementById('importBody').innerHTML = html;
+        showModal('importModal');
+        document.getElementById('importConfirm').onclick = async ()=>{
+          hideModal('importModal');
+          let created=0, updated=0;
+          for(const r of arr){
+            if(r._id){
+              await db.collection('vigiladores').doc(r._id).set(r, {merge:true});
+              updated++;
+            } else {
+              await db.collection('vigiladores').add(r);
+              created++;
+            }
+          }
+          showToast(`Importación completa. Creados: ${created}, Actualizados: ${updated}`);
+        };
+        document.getElementById('importCancel').onclick = ()=> hideModal('importModal');
+      }catch(e){ console.error(e); showToast('JSON inválido: '+e.message,4000,false); }
+    });
+
+    /**************************************************************************
+     * Importante: mostrar reglas de Firestore en UI (ya arriba)
+     * - Reglas mínimas: permitir solo usuarios autenticados (ver card).
+     *
+     * Reglas sugeridas (copiar a consola Firebase > Firestore > Rules):
+     *
+     * rules_version = '2';
+     * service cloud.firestore {
+     *   match /databases/{database}/documents {
+     *     match /{document=**} {
+     *       allow read, write: if request.auth != null;
+     *     }
+     *   }
+     * }
+     *
+     * Para roles más avanzados, usar claims personalizados o colección 'users' con campo 'role'.
+     *
+     **************************************************************************/
+
+    /**************************************************************************
+     * Importante técnico:
+     * - Este archivo usa Firebase SDK (compat) cargado desde CDN.
+     * - Para producción: validar y sanitizar datos, limitar tamaños de imágenes,
+     *   y aplicar reglas de seguridad más estrictas en Firestore.
+     **************************************************************************/
+
+    // Carga inicial: ocultar modales
+    hideModal('modalBackdrop');
+    hideModal('filtersModal');
+    hideModal('importModal');
+
+    // Pequeña mejora: cerrar modales al click en backdrop
+    document.querySelectorAll('.modal-backdrop').forEach(back=>{
+      back.addEventListener('click', (ev)=>{
+        if(ev.target === back) back.style.display='none';
+      });
+    });
+
+    // Evitar que inputs file mantengan valor tras uso (para permitir re-subir mismo archivo)
+    document.querySelectorAll('.file-input').forEach(fi=>{
+      fi.addEventListener('change', ()=> { setTimeout(()=>{ fi.value=''; }, 200); });
+    });
+
+    // Mostrar reglas en consola para desarrolladores
+    console.log('Firestore rules sugeridas: solo usuarios autenticados pueden leer/escribir.');
+
+    /**************************************************************************
+     * Nota final:
+     * - Este archivo es una base completa y funcional para gestionar vigiladores.
+     * - Recomendaciones:
+     *   * Reemplazar firebaseConfig.
+     *   * Ajustar ADMIN_EMAIL o implementar roles con claims.
+     *   * Limitar tamaño de imágenes antes de subir (aquí se guarda en Firestore como base64).
+     *   * Implementar validaciones adicionales y control de acceso en reglas.
+     **************************************************************************/
+  </script>
+</body>
+</html>
