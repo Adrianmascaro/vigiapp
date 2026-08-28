@@ -126,7 +126,7 @@
               <option value="">Todas</option><option>Vigilador</option><option>Vigilador Senior</option><option>Supervisor</option><option>Jefe de Seguridad</option>
             </select>
           </div>
-          <div class="field"><label>Obra social contiene</label><input name="obraSocial" oninput="render()"></div>
+          <div class="field"><label>Domicilio</label><input name="domicilio" oninput="render()"></div>
           <div class="field">
             <label>Talla camisa</label>
             <select name="camisa" onchange="render()">
@@ -276,7 +276,6 @@
           (!data.get("calzado") || String(v.calzadoTalla) === data.get("calzado")) &&
           (!data.get("conSancion") || (v.sanciones || []).length > 0) &&
           (!data.get("conObservaciones") || Boolean(v.observaciones)) &&
-          (!minNota || (v.evaluaciones || []).some(x => Number(x.nota) >= minNota))
         );
       }
 
