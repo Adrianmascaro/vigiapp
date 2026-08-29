@@ -274,8 +274,8 @@
           (!data.get("camisa") || String(v.camisaTalla) === data.get("camisa")) &&
           (!data.get("calzado") || String(v.calzadoTalla) === data.get("calzado")) &&
           (!data.get("conSancion") || (v.sanciones || []).length > 0) &&
-          (!data.get("conObservaciones") || Boolean(v.observaciones)) &&
-        );
+          (!data.get("conObservaciones") || Boolean(v.observaciones))
+        )
       }
 
       list.sort((a,b) => (a.apellido || "").localeCompare(b.apellido || ""));
