@@ -268,7 +268,7 @@
 
         list = list.filter(v =>
           (!data.get("categoria") || v.categoria === data.get("categoria")) &&
-          (!data.get("obraSocial") || norm(v.obraSocial).includes(norm(data.get("obraSocial")))) &&
+          (!data.get("domicilio") || norm(v.domicilio).includes(norm(data.get("domicilio")))) &&
           (!data.get("habTipo") || v.habilitacionTipo === data.get("habTipo")) &&
           (!data.get("venceAntes") || !v.habilitacionVencimiento || v.habilitacionVencimiento <= data.get("venceAntes")) &&
           (!data.get("camisa") || String(v.camisaTalla) === data.get("camisa")) &&
