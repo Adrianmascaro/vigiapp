@@ -28,6 +28,8 @@
     .list{overflow:hidden}
     .row{display:grid;grid-template-columns:52px 1fr auto auto;gap:13px;align-items:center;padding:12px 16px;border-bottom:1px solid #edf1f5}
     .row:last-child{border:0}
+    .row-baja {opacity: 0.6;background-color: #f8f9fa}
+    .row-baja .avatar {filter: grayscale(100%)}
     .avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;background:#d9eafa;color:#14518c;display:grid;place-items:center;font-weight:800}
     .muted{font-size:12px;color:#657587}.warning{color:#bd6d00;font-size:20px}
     .empty{text-align:center;padding:45px;color:#657587}
@@ -59,6 +61,7 @@
     .spin{width:17px;height:17px;border:2px solid #fff7;border-top-color:#fff;border-radius:50%;display:inline-block;vertical-align:middle;animation:spin .8s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
     @media(max-width:650px){.grid{grid-template-columns:1fr 1fr}.wide{grid-column:span 2}.array-form{grid-template-columns:1fr 1fr}.row{grid-template-columns:45px 1fr auto}.row .edit{display:none}.topbar{padding:12px 16px}.modal-body{padding:16px}.modal-head{padding:15px 16px}.modal-foot{padding:14px 16px}}
+    
   </style>
 </head>
 <body>
@@ -263,8 +266,48 @@
       const diff = Math.ceil((venc - hoy) / (1000 * 60 * 60 * 24));
       return diff;
     }
+
+// Dar de baja (baja lógica)
+    async function darDeBaja(id) {
+      if (!id) return;
+      if (!confirm("¿Estás seguro de dar de baja a este vigilador? Se puede reactivar después.")) {
+          return;
+      }
+      try {
+        loading(true);
+        await db.collection("vigiladores").doc(id).update({
+            estado: "BAJA",
+            fechaBaja: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        toast("Vigilador dado de baja correctamente.");
+      } catch (error) {
+        toast("Error al dar de baja: " + error.message, true);
+      } finally {
+        loading(false);
+      }
+    }    
+
+// Reactivar (volver a ALTA)
+    async function reactivar(id) {
+      if (!id) return;
+      if (!confirm("¿Reactivar a este vigilador?")) return;
+      try {
+        loading(true);
+        await db.collection("vigiladores").doc(id).update({
+            estado: "ALTA",
+            fechaBaja: firebase.firestore.FieldValue.delete(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        toast("Vigilador reactivado.");
+      } catch (error) {
+        toast("Error al reactivar: " + error.message, true);
+      } finally {
+        loading(false);
+      }
+    }    
     
-    function render() {
+    /*function render() {
       const query = ($("#search").value || "").toLowerCase();
       const form = $("#filterForm");
 
@@ -321,8 +364,82 @@
             </div>
         `;
       }).join("") : '<div class="empty">No se encontraron vigiladores.</div>';
-    }
+    }*/
 
+    function render() {
+      const query = ($("#search").value || "").toLowerCase();
+      const form = $("#filterForm");
+
+      let list = vigiladores.filter(v =>
+        `${v.nombre} ${v.apellido} ${v.dni}`.toLowerCase().includes(query)
+      );
+
+    // Aplicar filtros avanzados (si están visibles)
+      if (!form.classList.contains("hidden")) {
+        const data = new FormData(form);
+        const minNota = Number(data.get("minNota") || 0);
+
+        list = list.filter(v =>
+            (!data.get("categoria") || v.categoria === data.get("categoria")) &&
+            (!data.get("domicilio") || norm(v.domicilio).includes(norm(data.get("domicilio")))) &&
+            (!data.get("habTipo") || v.habilitacionTipo === data.get("habTipo")) &&
+            (!data.get("venceAntes") || !v.habilitacionVencimiento || v.habilitacionVencimiento <= data.get("venceAntes")) &&
+            (!data.get("camisa") || String(v.camisaTalla) === data.get("camisa")) &&
+            (!data.get("calzado") || String(v.calzadoTalla) === data.get("calzado")) &&
+            (!data.get("conSancion") || (v.sanciones || []).length > 0) &&
+            (!data.get("conObservaciones") || Boolean(v.observaciones)) &&
+            // 🔥 Filtro por evaluación mínima (CORREGIDO)
+            (!minNota || (v.evaluaciones || []).some(e => Number(e.nota) >= minNota))
+        );
+      }
+
+    // Ordenar alfabéticamente por apellido
+      list.sort((a, b) => (a.apellido || "").localeCompare(b.apellido || ""));
+
+    // Construir el HTML de la lista (SOLO UNA VEZ)
+      $("#list").innerHTML = list.length ? list.map(v => {
+        // █████████████████████████████████████████████
+        // 1. ADVERTENCIA DE VENCIMIENTO (ícono)
+        // █████████████████████████████████████████████
+        const diff = calcularDiasRestantes(v.habilitacionVencimiento);
+        let warningIcon = '';
+        if (diff !== null && diff <= 30 && diff >= 0) {
+            warningIcon = `<span style="color:#dc3545; font-weight:bold; margin-left:5px;" title="Vence en ${diff} días">⚠️</span>`;
+        }
+
+        // █████████████████████████████████████████████
+        // 2. ESTADO DEL VIGILADOR (ALTA / BAJA)
+        // █████████████████████████████████████████████
+        const esBaja = v.estado === 'BAJA';
+        const estadoLabel = esBaja ? '<span style="color:#c53d3d; font-weight:bold; margin-left:8px;">(Dado de baja)</span>' : '';
+
+        // █████████████████████████████████████████████
+        // 3. BOTÓN DE ACCIÓN (Dar de baja / Reactivar)
+        // █████████████████████████████████████████████
+        let botonAccion;
+        if (esBaja) {
+            botonAccion = `<button class="secondary" onclick="reactivar('${v.id}')" style="color:#18865b;">Reactivar</button>`;
+            } else {
+              botonAccion = `<button class="secondary danger" onclick="darDeBaja('${v.id}')" style="border-color:#c53d3d; color:#c53d3d;">Dar de baja</button>`;
+              }
+
+        return `
+            <div class="row ${esBaja ? 'row-baja' : ''}">
+                <div class="avatar">${v.foto ? `<img class="avatar" src="${v.foto}">` : initials(v)}</div>
+                <div>
+                    <strong>${esc(v.apellido)}, ${esc(v.nombre)} ${warningIcon} ${estadoLabel}</strong>
+                    <div class="muted">DNI ${esc(v.dni || "—")} · Legajo ${esc(v.legajo || "—")}</div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    ${(v.sanciones || []).length ? '<span class="warning" title="Tiene sanciones">⚠</span>' : ''}
+                    <button class="secondary edit" onclick="openModal('${v.id}')">Editar</button>
+                    ${botonAccion}
+                </div>
+            </div>
+        `;
+      }).join("") : '<div class="empty">No se encontraron vigiladores.</div>';
+    }    
+    
     function toggleFilters() {
       $("#filterForm").classList.toggle("hidden");
       render();
