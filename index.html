@@ -254,6 +254,16 @@
       });
     }
 
+    function calcularDiasRestantes(fecha) {
+      if (!fecha) return null;
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      const venc = new Date(fecha);
+      venc.setHours(0, 0, 0, 0);
+      const diff = Math.ceil((venc - hoy) / (1000 * 60 * 60 * 24));
+      return diff;
+    }
+    
     function render() {
       const query = ($("#search").value || "").toLowerCase();
       const form = $("#filterForm");
@@ -279,7 +289,7 @@
       }
 
       list.sort((a,b) => (a.apellido || "").localeCompare(b.apellido || ""));
-
+      
       $("#list").innerHTML = list.length ? list.map(v => `
         <div class="row">
           <div class="avatar">${v.foto ? `<img class="avatar" src="${v.foto}">` : initials(v)}</div>
@@ -291,6 +301,26 @@
           <button class="secondary edit" onclick="openModal('${v.id}')">Editar</button>
         </div>
       `).join("") : '<div class="empty">No se encontraron vigiladores.</div>';
+      $("#list").innerHTML = list.length ? list.map(v => {
+        // Calcular días restantes para este vigilador
+        const diff = calcularDiasRestantes(v.habilitacionVencimiento);
+        let warningIcon = '';
+        if (diff !== null && diff <= 30 && diff >= 0) {
+            warningIcon = `<span style="color:#dc3545; font-weight:bold; margin-left:5px;" title="Vence en ${diff} días">⚠️</span>`;
+        }
+
+        return `
+            <div class="row">
+                <div class="avatar">${v.foto ? `<img class="avatar" src="${v.foto}">` : initials(v)}</div>
+                <div>
+                    <strong>${esc(v.apellido)}, ${esc(v.nombre)} ${warningIcon}</strong>
+                    <div class="muted">DNI ${esc(v.dni || "—")} · Legajo ${esc(v.legajo || "—")}</div>
+                </div>
+                ${(v.sanciones || []).length ? '<span class="warning" title="Tiene sanciones">⚠</span>' : "<span></span>"}
+                <button class="secondary edit" onclick="openModal('${v.id}')">Editar</button>
+            </div>
+        `;
+      }).join("") : '<div class="empty">No se encontraron vigiladores.</div>';
     }
 
     function toggleFilters() {
@@ -327,7 +357,7 @@
         sanciones: [...(editing.sanciones || [])]
       };
       activeTab = 0;
-
+          
       $("#modalHost").innerHTML = `
         <div class="modal-bg">
           <div class="modal">
@@ -357,6 +387,31 @@
     }
 
     function renderPanes() {
+    // █████████████████████████████████████████████████████████
+    // NUEVO: Generar cartel de advertencia si corresponde
+      let advertenciaHTML = '';
+      if (editing && editing.habilitacionVencimiento) {
+        const diff = calcularDiasRestantes(editing.habilitacionVencimiento);
+        if (diff !== null && diff <= 30 && diff >= 0) {
+            const fechaFormateada = new Date(editing.habilitacionVencimiento).toLocaleDateString('es-AR');
+            const nombreCompleto = `${editing.nombre || ''} ${editing.apellido || ''}`.trim() || 'Vigilador';
+            // También mostramos el toast aquí (opcional)
+            toast(`⚠️ La habilitación de ${nombreCompleto} vence el ${fechaFormateada}. ¡Faltan ${diff} días!`, true);
+            
+            advertenciaHTML = `
+                <div style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffeeba; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 20px;">⚠️</span>
+                    <div>
+                        <strong>¡Atención!</strong> La habilitación de <strong>${nombreCompleto}</strong> vence el <strong>${fechaFormateada}</strong>. 
+                        Faltan <strong>${diff} días</strong> para el vencimiento.
+                    </div>
+                </div>
+            `;
+        }
+      }
+    // █████████████████████████████████████████████████████████
+
+      
       $("#panes").innerHTML = `
         <section class="pane ${activeTab === 0 ? "active" : ""}">
           <div class="photo-wrap">
@@ -385,6 +440,7 @@
         </section>
 
         <section class="pane ${activeTab === 1 ? "active" : ""}">
+          ${advertenciaHTML}
           <p class="section-title">Habilitación vigente</p>
           <div class="grid">
             ${select("Tipo","habilitacionTipo",["Provincia","CABA"])}
@@ -436,7 +492,7 @@
         <section class="pane ${activeTab === 5 ? "active" : ""}">
           <div id="sancionesBox"></div>
         </section>`;
-
+    
       $("#photoInput")?.addEventListener("change", readPhoto);
       renderArrays();
     }
