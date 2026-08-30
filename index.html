@@ -376,21 +376,15 @@
 
     // Aplicar filtros avanzados (si están visibles)
       if (!form.classList.contains("hidden")) {
-        const data = new FormData(form);
-        const minNota = Number(data.get("minNota") || 0);
+          const data = new FormData(form);
+          const minNota = Number(data.get("minNota") || 0);
 
-        list = list.filter(v =>
-            (!data.get("categoria") || v.categoria === data.get("categoria")) &&
-            (!data.get("domicilio") || norm(v.domicilio).includes(norm(data.get("domicilio")))) &&
-            (!data.get("habTipo") || v.habilitacionTipo === data.get("habTipo")) &&
-            (!data.get("venceAntes") || !v.habilitacionVencimiento || v.habilitacionVencimiento <= data.get("venceAntes")) &&
-            (!data.get("camisa") || String(v.camisaTalla) === data.get("camisa")) &&
-            (!data.get("calzado") || String(v.calzadoTalla) === data.get("calzado")) &&
-            (!data.get("conSancion") || (v.sanciones || []).length > 0) &&
-            (!data.get("conObservaciones") || Boolean(v.observaciones)) &&
-            // 🔥 Filtro por evaluación mínima (CORREGIDO)
-            (!minNota || (v.evaluaciones || []).some(e => Number(e.nota) >= minNota))
-        );
+          list = list.filter(v =>
+              (!data.get("categoria") || v.categoria === data.get("categoria")) &&
+              (!data.get("domicilio") || norm(v.domicilio).includes(norm(data.get("domicilio")))) &&
+              (!data.get("habTipo") || v.habilitacionTipo === data.get("habTipo")) &&
+              (!data.get("venceAntes") || !v.habilitacionVencimiento || v.habilitacionVencimiento <= data.get("venceAntes"))
+          );
       }
 
     // Ordenar alfabéticamente por apellido
@@ -401,42 +395,42 @@
         // █████████████████████████████████████████████
         // 1. ADVERTENCIA DE VENCIMIENTO (ícono)
         // █████████████████████████████████████████████
-        const diff = calcularDiasRestantes(v.habilitacionVencimiento);
-        let warningIcon = '';
-        if (diff !== null && diff <= 30 && diff >= 0) {
-            warningIcon = `<span style="color:#dc3545; font-weight:bold; margin-left:5px;" title="Vence en ${diff} días">⚠️</span>`;
-        }
+          const diff = calcularDiasRestantes(v.habilitacionVencimiento);
+          let warningIcon = '';
+          if (diff !== null && diff <= 30 && diff >= 0) {
+              warningIcon = `<span style="color:#dc3545; font-weight:bold; margin-left:5px;" title="Vence en ${diff} días">⚠️</span>`;
+          }
 
         // █████████████████████████████████████████████
         // 2. ESTADO DEL VIGILADOR (ALTA / BAJA)
         // █████████████████████████████████████████████
-        const esBaja = v.estado === 'BAJA';
-        const estadoLabel = esBaja ? '<span style="color:#c53d3d; font-weight:bold; margin-left:8px;">(Dado de baja)</span>' : '';
+          const esBaja = v.estado === 'BAJA';
+          const estadoLabel = esBaja ? '<span style="color:#c53d3d; font-weight:bold; margin-left:8px;">(Dado de baja)</span>' : '';
 
         // █████████████████████████████████████████████
         // 3. BOTÓN DE ACCIÓN (Dar de baja / Reactivar)
         // █████████████████████████████████████████████
-        let botonAccion;
-        if (esBaja) {
-            botonAccion = `<button class="secondary" onclick="reactivar('${v.id}')" style="color:#18865b;">Reactivar</button>`;
-            } else {
-              botonAccion = `<button class="secondary danger" onclick="darDeBaja('${v.id}')" style="border-color:#c53d3d; color:#c53d3d;">Dar de baja</button>`;
+          let botonAccion;
+              if (esBaja) {
+                  botonAccion = `<button class="secondary" onclick="reactivar('${v.id}')" style="color:#18865b;">Reactivar</button>`;
+              } else {
+                    botonAccion = `<button class="secondary danger" onclick="darDeBaja('${v.id}')" style="border-color:#c53d3d; color:#c53d3d;">Dar de baja</button>`;
               }
 
-        return `
-            <div class="row ${esBaja ? 'row-baja' : ''}">
-                <div class="avatar">${v.foto ? `<img class="avatar" src="${v.foto}">` : initials(v)}</div>
-                <div>
-                    <strong>${esc(v.apellido)}, ${esc(v.nombre)} ${warningIcon} ${estadoLabel}</strong>
-                    <div class="muted">DNI ${esc(v.dni || "—")} · Legajo ${esc(v.legajo || "—")}</div>
-                </div>
-                <div style="display:flex; gap:8px; align-items:center;">
-                    ${(v.sanciones || []).length ? '<span class="warning" title="Tiene sanciones">⚠</span>' : ''}
-                    <button class="secondary edit" onclick="openModal('${v.id}')">Editar</button>
-                    ${botonAccion}
-                </div>
-            </div>
-        `;
+              return `
+                  <div class="row ${esBaja ? 'row-baja' : ''}">
+                      <div class="avatar">${v.foto ? `<img class="avatar" src="${v.foto}">` : initials(v)}</div>
+                      <div>
+                          <strong>${esc(v.apellido)}, ${esc(v.nombre)} ${warningIcon} ${estadoLabel}</strong>
+                          <div class="muted">DNI ${esc(v.dni || "—")} · Legajo ${esc(v.legajo || "—")}</div>
+                      </div>
+                      <div style="display:flex; gap:8px; align-items:center;">
+                          ${(v.sanciones || []).length ? '<span class="warning" title="Tiene sanciones">⚠</span>' : ''}
+                          <button class="secondary edit" onclick="openModal('${v.id}')">Editar</button>
+                          ${botonAccion}
+                      </div>
+                  </div>
+              `;
       }).join("") : '<div class="empty">No se encontraron vigiladores.</div>';
     }    
     
