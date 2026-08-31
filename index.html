@@ -292,6 +292,222 @@
       });
       return pendientes;
     }
+
+    // -------- FUNCIONES PARA GESTIÓN DE ROPA --------
+
+    function renderHistorialRopa() {
+        const entregas = editing?.entregasRopa || [];
+        if (entregas.length === 0) {
+            return '<div class="muted" style="padding:20px; text-align:center;">No hay entregas registradas.</div>';
+        }
+
+        const sorted = [...entregas].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+        let html = `<table class="data-table" style="width:100%;">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Prendas</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        sorted.forEach(entrega => {
+            const detallePrendas = entrega.prendas.map(p => 
+                `${p.tipo} x${p.cantidad} (talle ${p.talla})`
+            ).join(', ');
+
+            html += `
+                <tr>
+                    <td>${entrega.fecha}</td>
+                    <td>${entrega.tipo === 'inicial' ? 'Entrega inicial' : 'Cambio'}</td>
+                    <td>${detallePrendas}</td>
+                    <td>
+                        <button type="button" class="danger" onclick="eliminarEntregaRopa('${entrega.id}')" style="background:transparent; border:none; color:#c53d3d; cursor:pointer;">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table>`;
+        return html;
+    }
+
+    let tipoEntregaActual = 'inicial';
+
+    function mostrarFormularioRopa(tipo) {
+        tipoEntregaActual = tipo;
+        const form = document.getElementById('formularioRopa');
+        if (!form) {
+            toast('El formulario de ropa no está disponible.', true);
+            return;
+        }
+        form.style.display = 'block';
+        document.getElementById('tituloFormularioRopa').textContent = tipo === 'inicial' ? 'Nueva entrega inicial' : 'Registrar cambio';
+        document.getElementById('tipoEntrega').value = tipo;
+        document.getElementById('fechaEntrega').value = new Date().toISOString().slice(0, 10);
+    
+        const container = document.getElementById('prendasContainer');
+        container.innerHTML = '';
+        agregarFilaPrenda();
+    }
+
+    function ocultarFormularioRopa() {
+        const form = document.getElementById('formularioRopa');
+        if (form) form.style.display = 'none';
+    }
+
+    function agregarFilaPrenda() {
+        const container = document.getElementById('prendasContainer');
+        if (!container) return;
+
+        const fila = document.createElement('div');
+        fila.className = 'fila-prenda';
+        fila.style.cssText = 'display:flex; gap:10px; align-items:end; margin-bottom:8px;';
+        fila.innerHTML = `
+            <div class="field" style="flex:2;">
+                <label for="tipoPrenda_${Date.now()}">Tipo</label>
+                <select class="select-tipo-prenda" id="tipoPrenda_${Date.now()}" onchange="actualizarTallas(this)">
+                    ${tiposPrenda.map(t => `<option value="${t}">${t}</option>`).join('')}
+                </select>
+            </div>
+            <div class="field" style="flex:1;">
+                <label for="tallaPrenda_${Date.now()}">Talla</label>
+                <select class="select-talla-prenda" id="tallaPrenda_${Date.now()}">
+                    <!-- Se llenará dinámicamente -->
+                </select>
+            </div>
+            <div class="field" style="flex:1;">
+                <label for="cantidadPrenda_${Date.now()}">Cantidad</label>
+                <input type="number" class="input-cantidad" id="cantidadPrenda_${Date.now()}" value="1" min="1" max="10">
+            </div>
+            <button type="button" class="secondary danger" onclick="eliminarFilaPrenda(this)" style="margin-bottom:2px;">✕</button>
+        `;
+        container.appendChild(fila);
+    
+        const selectTipo = fila.querySelector('.select-tipo-prenda');
+        actualizarTallas(selectTipo);
+    }
+
+    function eliminarFilaPrenda(btn) {
+        const fila = btn.closest('.fila-prenda');
+        const container = document.getElementById('prendasContainer');
+        if (container.children.length > 1) {
+            fila.remove();
+        } else {
+            toast('Debe haber al menos una prenda.', true);
+        }
+    }
+
+    function actualizarTallas(selectTipo) {
+        const fila = selectTipo.closest('.fila-prenda');
+        const selectTalla = fila.querySelector('.select-talla-prenda');
+        const tipo = selectTipo.value;
+        let tallas = [];
+    
+        switch(tipo) {
+            case 'Camisa':
+            case 'Pantalón':
+                tallas = sizesNum;
+                break;
+            case 'Tricota':
+            case 'Campera':
+                tallas = sizesLetter;
+                break;
+            case 'Corbata':
+                tallas = ['Única', 'Regular', 'Larga'];
+                break;
+            case 'Cinturón':
+                tallas = [90,100,110,120,130,140,150,160];
+                break;
+            default:
+                tallas = [];
+        }
+    
+        selectTalla.innerHTML = tallas.map(t => `<option value="${t}">${t}</option>`).join('');
+    }
+
+    async function guardarEntregaRopa() {
+        const filas = document.querySelectorAll('#prendasContainer .fila-prenda');
+        if (filas.length === 0) {
+            toast('Debe agregar al menos una prenda.', true);
+            return;
+        }
+
+        const fecha = document.getElementById('fechaEntrega').value;
+        if (!fecha) {
+            toast('Seleccione una fecha.', true);
+            return;
+        }
+
+        const tipo = document.getElementById('tipoEntrega').value;
+        const prendas = [];
+
+        filas.forEach(fila => {
+            const tipoPrenda = fila.querySelector('.select-tipo-prenda').value;
+            const talla = fila.querySelector('.select-talla-prenda').value;
+            const cantidad = parseInt(fila.querySelector('.input-cantidad').value) || 0;
+            if (cantidad > 0) {
+                prendas.push({ tipo: tipoPrenda, talla: talla, cantidad: cantidad });
+            }
+        });
+
+        if (prendas.length === 0) {
+            toast('Debe registrar al menos una prenda con cantidad mayor a 0.', true);
+            return;
+        }
+
+        const nuevaEntrega = {
+            id: 'entrega_' + Date.now(),
+            fecha: fecha,
+            tipo: tipo,
+            prendas: prendas
+        };
+
+        if (!editing.entregasRopa) editing.entregasRopa = [];
+        editing.entregasRopa.push(nuevaEntrega);
+
+        try {
+            loading(true);
+            await db.collection('vigiladores').doc(editing.id).update({
+                entregasRopa: editing.entregasRopa
+            });
+            toast('Entrega de ropa registrada correctamente.');
+            ocultarFormularioRopa();
+            renderPanes();
+        } catch (error) {
+            toast('Error al guardar: ' + error.message, true);
+        } finally {
+            loading(false);
+        }
+    }
+
+    async function eliminarEntregaRopa(id) {
+        if (!confirm('¿Eliminar este registro de entrega? Esta acción no se puede deshacer.')) return;
+    
+        const entregas = editing.entregasRopa || [];
+        const nuevasEntregas = entregas.filter(e => e.id !== id);
+        if (nuevasEntregas.length === entregas.length) {
+            toast('No se encontró la entrega.', true);
+            return;
+        }
+
+        try {
+            loading(true);
+            await db.collection('vigiladores').doc(editing.id).update({
+                entregasRopa: nuevasEntregas
+            });
+            editing.entregasRopa = nuevasEntregas;
+            toast('Registro eliminado.');
+            renderPanes();
+        } catch (error) {
+            toast('Error al eliminar: ' + error.message, true);
+        } finally {
+            loading(false);
+        }
+    }
     
 // Dar de baja (baja lógica)
     async function darDeBaja(id) {
@@ -760,22 +976,49 @@
 
             <section class="pane ${activeTab === 3 ? "active" : ""}">
                 ${htmlPendientes}
-                <p class="section-title">Talles y entrega de indumentaria</p>
-                <div class="grid">
-                    ${select("Talla camisa","camisaTalla",sizesNum)}
-                    ${select("Cantidad camisa","camisaCantidad",[1,2,3,4])}
-                    ${select("Talla pantalón","pantalonTalla",sizesNum)}
-                    ${select("Cantidad pantalón","pantalonCantidad",[1,2,3,4])}
-                    ${select("Talla tricota","tricotaTalla",sizesLetter)}
-                    ${select("Cantidad tricota","tricotaCantidad",[1,2,3])}
-                    ${select("Talla campera","camperaTalla",sizesLetter)}
-                    ${select("Cantidad campera","camperaCantidad",[1,2])}
-                    ${select("Cantidad corbata","corbataCantidad",[0,1,2,3,4])}
-                    ${field("Talla calzado","calzadoTalla","number")}
-                    ${select("Talla cinturón","cinturonTalla",[90,100,110,120,130,140,150,160])}
-                    ${select("Cantidad cinturón","cinturonCantidad",[1,2,3])}
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h3 style="margin:0;">Entregas de ropa</h3>
+                    <div>
+                        <button type="button" class="secondary" onclick="mostrarFormularioRopa('inicial')" style="margin-right:8px;">➕ Nueva entrega</button>
+                        <button type="button" class="secondary" onclick="mostrarFormularioRopa('cambio')">🔄 Registrar cambio</button>
+                    </div>
                 </div>
-                <div id="entregasBox"></div>
+
+                <!-- Historial de entregas -->
+                <div id="entregasRopaList">
+                    ${renderHistorialRopa()}
+                </div>
+
+                <!-- Formulario para nueva entrega/cambio (oculto por defecto) -->
+                <div id="formularioRopa" style="display:none; border:1px solid #ddd; padding:15px; border-radius:8px; margin-top:15px; background:#f9f9f9;">
+                    <h4 id="tituloFormularioRopa">Nueva entrega</h4>
+                    <div class="grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="field">
+                            <label for="fechaEntrega">Fecha</label>
+                            <input type="date" id="fechaEntrega" value="${new Date().toISOString().slice(0,10)}">
+                        </div>
+                        <div class="field">
+                            <label for="tipoEntrega">Tipo</label>
+                            <select id="tipoEntrega" disabled>
+                                <option value="inicial">Entrega inicial</option>
+                                <option value="cambio">Cambio</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:15px;">
+                        <label><strong>Prendas entregadas</strong></label>
+                        <div id="prendasContainer">
+                            <!-- Las filas se agregan dinámicamente -->
+                        </div>
+                        <button type="button" class="secondary" onclick="agregarFilaPrenda()" style="margin-top:8px;">➕ Agregar otra prenda</button>
+                    </div>
+
+                    <div style="margin-top:15px; display:flex; gap:10px;">
+                        <button type="button" class="primary" onclick="guardarEntregaRopa()">Guardar entrega</button>
+                        <button type="button" class="secondary" onclick="ocultarFormularioRopa()">Cancelar</button>
+                    </div>
+                </div>
             </section>
 
             <section class="pane ${activeTab === 4 ? "active" : ""}">
