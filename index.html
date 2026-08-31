@@ -686,114 +686,114 @@
     // █████████████████████████████████████████████████████████
     // 2. PENDIENTES DE ROPA (cálculo previo al HTML)
     // █████████████████████████████████████████████████████████
-    const pendientes = editing ? calcularPrendasPendientes(editing) : [];
-    let htmlPendientes = '';
-    if (pendientes.length > 0) {
-        htmlPendientes = `
-            <div style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffeeba; display: flex; align-items: flex-start; gap: 10px;">
-                <span style="font-size: 24px;">🧥</span>
-                <div>
-                    <strong>Prendas pendientes de entrega:</strong>
-                    <ul style="margin:5px 0; padding-left:20px;">
-                        ${pendientes.map(p => `<li>${p.tipo}: faltan <strong>${p.faltante}</strong> unidades (se requieren ${p.requerido})</li>`).join('')}
-                    </ul>
-                    <small>Registra un <strong>"Cambio"</strong> para completar la entrega.</small>
+        const pendientes = editing ? calcularPrendasPendientes(editing) : [];
+        let htmlPendientes = '';
+        if (pendientes.length > 0) {
+            htmlPendientes = `
+                <div style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffeeba; display: flex; align-items: flex-start; gap: 10px;">
+                    <span style="font-size: 24px;">🧥</span>
+                    <div>
+                        <strong>Prendas pendientes de entrega:</strong>
+                        <ul style="margin:5px 0; padding-left:20px;">
+                            ${pendientes.map(p => `<li>${p.tipo}: faltan <strong>${p.faltante}</strong> unidades (se requieren ${p.requerido})</li>`).join('')}
+                        </ul>
+                        <small>Registra un <strong>"Cambio"</strong> para completar la entrega.</small>
+                    </div>
                 </div>
-            </div>
-        `;
-    }
+            `;
+        }
 
     // █████████████████████████████████████████████████████████
     // 3. CONSTRUCCIÓN DEL HTML DE LAS PESTAÑAS
     // █████████████████████████████████████████████████████████
-    $("#panes").innerHTML = `
-        <section class="pane ${activeTab === 0 ? "active" : ""}">
-            <div class="photo-wrap">
-                <div class="avatar" id="photoPreview">
-                    ${editing?.foto ? `<img class="avatar" src="${editing.foto}">` : initials(editing || {})}
+        $("#panes").innerHTML = `
+            <section class="pane ${activeTab === 0 ? "active" : ""}">
+                <div class="photo-wrap">
+                    <div class="avatar" id="photoPreview">
+                        ${editing?.foto ? `<img class="avatar" src="${editing.foto}">` : initials(editing || {})}
+                    </div>
+                    <div class="field">
+                        <label>Foto de perfil</label>
+                        <input id="photoInput" type="file" accept="image/*">
+                    </div>
                 </div>
-                <div class="field">
-                    <label>Foto de perfil</label>
-                    <input id="photoInput" type="file" accept="image/*">
+                <div class="grid">
+                    ${field("Nombre","nombre")}
+                    ${field("Apellido","apellido")}
+                    ${field("DNI","dni")}
+                    ${field("Fecha de nacimiento","fechaNacimiento","date")}
+                    ${select("Estado civil","estadoCivil",["Soltero/a","Casado/a","Divorciado/a","Viudo/a","Unión convivencial"])}
+                    ${field("Nombre de la madre","madre")}
+                    ${field("Nombre del padre","padre")}
+                    ${field("Domicilio","domicilio","text","wide")}
+                    ${field("Código postal","codigoPostal")}
+                    ${field("Teléfono","telefono")}
+                    ${field("Email","email","email")}
                 </div>
-            </div>
-            <div class="grid">
-                ${field("Nombre","nombre")}
-                ${field("Apellido","apellido")}
-                ${field("DNI","dni")}
-                ${field("Fecha de nacimiento","fechaNacimiento","date")}
-                ${select("Estado civil","estadoCivil",["Soltero/a","Casado/a","Divorciado/a","Viudo/a","Unión convivencial"])}
-                ${field("Nombre de la madre","madre")}
-                ${field("Nombre del padre","padre")}
-                ${field("Domicilio","domicilio","text","wide")}
-                ${field("Código postal","codigoPostal")}
-                ${field("Teléfono","telefono")}
-                ${field("Email","email","email")}
-            </div>
-        </section>
+            </section>
 
-        <section class="pane ${activeTab === 1 ? "active" : ""}">
-            ${advertenciaHTML}
-            <p class="section-title">Habilitación vigente</p>
-            <div class="grid">
-                ${select("Tipo","habilitacionTipo",["Provincia","CABA"])}
-                ${field("Número","habilitacionNumero")}
-                ${field("Fecha de vencimiento","habilitacionVencimiento","date")}
-                ${field("Organismo","habilitacionOrganismo","text","wide")}
-            </div>
-        </section>
+            <section class="pane ${activeTab === 1 ? "active" : ""}">
+                ${advertenciaHTML}
+                <p class="section-title">Habilitación vigente</p>
+                <div class="grid">
+                    ${select("Tipo","habilitacionTipo",["Provincia","CABA"])}
+                    ${field("Número","habilitacionNumero")}
+                    ${field("Fecha de vencimiento","habilitacionVencimiento","date")}
+                    ${field("Organismo","habilitacionOrganismo","text","wide")}
+                </div>
+            </section>
 
-        <section class="pane ${activeTab === 2 ? "active" : ""}">
-            <p class="section-title">Datos laborales</p>
-            <div class="grid">
-                ${field("Legajo","legajo")}
-                ${field("Fecha de ingreso","fechaIngreso","date")}
-                ${select("Categoría","categoria",["Vigilador","Vigilador Senior","Supervisor","Jefe de Seguridad"])}
-                ${field("Horario","horario")}
-                ${field("Obra social","obraSocial")}
-                ${field("CUIL","cuil")}
-                ${field("Banco","banco")}
-                ${field("Número de cuenta","numeroCuenta")}
-                ${field("CBU","cbu","text","full")}
-            </div>
-        </section>
+            <section class="pane ${activeTab === 2 ? "active" : ""}">
+                <p class="section-title">Datos laborales</p>
+                <div class="grid">
+                    ${field("Legajo","legajo")}
+                    ${field("Fecha de ingreso","fechaIngreso","date")}
+                    ${select("Categoría","categoria",["Vigilador","Vigilador Senior","Supervisor","Jefe de Seguridad"])}
+                    ${field("Horario","horario")}
+                    ${field("Obra social","obraSocial")}
+                    ${field("CUIL","cuil")}
+                    ${field("Banco","banco")}
+                    ${field("Número de cuenta","numeroCuenta")}
+                    ${field("CBU","cbu","text","full")}
+                </div>
+            </section>
 
-        <section class="pane ${activeTab === 3 ? "active" : ""}">
-            ${htmlPendientes}
-            <p class="section-title">Talles y entrega de indumentaria</p>
-            <div class="grid">
-                ${select("Talla camisa","camisaTalla",sizesNum)}
-                ${select("Cantidad camisa","camisaCantidad",[1,2,3,4])}
-                ${select("Talla pantalón","pantalonTalla",sizesNum)}
-                ${select("Cantidad pantalón","pantalonCantidad",[1,2,3,4])}
-                ${select("Talla tricota","tricotaTalla",sizesLetter)}
-                ${select("Cantidad tricota","tricotaCantidad",[1,2,3])}
-                ${select("Talla campera","camperaTalla",sizesLetter)}
-                ${select("Cantidad campera","camperaCantidad",[1,2])}
-                ${select("Cantidad corbata","corbataCantidad",[0,1,2,3,4])}
-                ${field("Talla calzado","calzadoTalla","number")}
-                ${select("Talla cinturón","cinturonTalla",[90,100,110,120,130,140,150,160])}
-                ${select("Cantidad cinturón","cinturonCantidad",[1,2,3])}
-            </div>
-            <div id="entregasBox"></div>
-        </section>
+            <section class="pane ${activeTab === 3 ? "active" : ""}">
+                ${htmlPendientes}
+                <p class="section-title">Talles y entrega de indumentaria</p>
+                <div class="grid">
+                    ${select("Talla camisa","camisaTalla",sizesNum)}
+                    ${select("Cantidad camisa","camisaCantidad",[1,2,3,4])}
+                    ${select("Talla pantalón","pantalonTalla",sizesNum)}
+                    ${select("Cantidad pantalón","pantalonCantidad",[1,2,3,4])}
+                    ${select("Talla tricota","tricotaTalla",sizesLetter)}
+                    ${select("Cantidad tricota","tricotaCantidad",[1,2,3])}
+                    ${select("Talla campera","camperaTalla",sizesLetter)}
+                    ${select("Cantidad campera","camperaCantidad",[1,2])}
+                    ${select("Cantidad corbata","corbataCantidad",[0,1,2,3,4])}
+                    ${field("Talla calzado","calzadoTalla","number")}
+                    ${select("Talla cinturón","cinturonTalla",[90,100,110,120,130,140,150,160])}
+                    ${select("Cantidad cinturón","cinturonCantidad",[1,2,3])}
+                </div>
+                <div id="entregasBox"></div>
+            </section>
 
-        <section class="pane ${activeTab === 4 ? "active" : ""}">
-            <div class="grid">${field("Observaciones","observaciones","textarea","full")}</div>
-            <div id="evaluacionesBox"></div>
-        </section>
+            <section class="pane ${activeTab === 4 ? "active" : ""}">
+                <div class="grid">${field("Observaciones","observaciones","textarea","full")}</div>
+                <div id="evaluacionesBox"></div>
+            </section>
 
-        <section class="pane ${activeTab === 5 ? "active" : ""}">
-            <div id="sancionesBox"></div>
-        </section>
-    `;
+            <section class="pane ${activeTab === 5 ? "active" : ""}">
+                <div id="sancionesBox"></div>
+            </section>
+        `;
 
     // █████████████████████████████████████████████████████████
     // 4. EVENTOS Y RENDERIZADO DE ARRAYS (igual que antes)
     // █████████████████████████████████████████████████████████
-    $("#photoInput")?.addEventListener("change", readPhoto);
-    renderArrays();
-}
+        $("#photoInput")?.addEventListener("change", readPhoto);
+        renderArrays();
+    }
     
     function showTab(tab) {
       activeTab = tab;
