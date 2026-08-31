@@ -260,38 +260,38 @@
       return diff;
     }
 
-function calcularPrendasPendientes(vigilador) {
-    if (!vigilador) return [];
+    function calcularPrendasPendientes(vigilador) {
+      if (!vigilador) return [];
     
     // Obtener todas las entregas de ropa
-    const entregas = vigilador.entregasRopa || [];
+      const entregas = vigilador.entregasRopa || [];
     
     // Acumular cantidades entregadas por tipo (sin importar talla)
-    const entregado = {};
-    entregas.forEach(entrega => {
-        entrega.prendas.forEach(prenda => {
-            const clave = prenda.tipo;
-            if (!entregado[clave]) entregado[clave] = 0;
-            entregado[clave] += prenda.cantidad;
-        });
-    });
+      const entregado = {};
+      entregas.forEach(entrega => {
+          entrega.prendas.forEach(prenda => {
+              const clave = prenda.tipo;
+              if (!entregado[clave]) entregado[clave] = 0;
+              entregado[clave] += prenda.cantidad;
+          });
+      });
 
     // Calcular faltantes comparando con el estándar
-    const pendientes = [];
-    PRENDAS_ESTANDAR.forEach(estandar => {
-        const entregadoCantidad = entregado[estandar.tipo] || 0;
-        const faltante = estandar.cantidad - entregadoCantidad;
-        if (faltante > 0) {
-            pendientes.push({
-                tipo: estandar.tipo,
-                faltante: faltante,
-                requerido: estandar.cantidad,
-                entregado: entregadoCantidad
-            });
-        }
-    });
-    return pendientes;
-}
+      const pendientes = [];
+      PRENDAS_ESTANDAR.forEach(estandar => {
+          const entregadoCantidad = entregado[estandar.tipo] || 0;
+          const faltante = estandar.cantidad - entregadoCantidad;
+          if (faltante > 0) {
+              pendientes.push({
+                  tipo: estandar.tipo,
+                  faltante: faltante,
+                  requerido: estandar.cantidad,
+                  entregado: entregadoCantidad
+              });
+          }
+      });
+      return pendientes;
+    }
     
 // Dar de baja (baja lógica)
     async function darDeBaja(id) {
