@@ -191,6 +191,17 @@
     
     const sizesLetter = ["S","M","L","XL","XXL","XXXL"];
 
+    const ESTADOS_JUDICIALES = [
+        { value: 'renuncia_voluntaria', label: 'Renuncia voluntaria' },
+        { value: 'reserva_puesto', label: 'Reserva del puesto' },
+        { value: 'preaviso', label: 'Preaviso' },
+        { value: 'intimacion', label: 'Intimación' },
+        { value: 'mediacion', label: 'Mediación (SECLO)' },
+        { value: 'demanda', label: 'Demanda judicial' },
+        { value: 'sentencia', label: 'Sentencia' },
+        { value: 'cierre', label: 'Cierre / Baja definitiva' }
+    ];
+    
     function options(list, selected = "") {
       return list.map(x => `<option ${String(x) === String(selected) ? "selected" : ""}>${x}</option>`).join("");
     }
@@ -350,6 +361,60 @@
         return html;
     }
 
+    function renderHistorialJudicial() {
+        const historial = editing?.historialJudicial || [];
+        if (historial.length === 0) return '<div class="muted">Sin novedades judiciales registradas.</div>';
+        let html = `<table class="data-table"><thead><tr><th>Fecha</th><th>Estado</th><th>Comentario</th><th>Expediente</th></tr></thead><tbody>`;
+        const sorted = [...historial].sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+        sorted.forEach(item => {
+            const estadoInfo = ESTADOS_JUDICIALES.find(e => e.value === item.estado);
+            const label = estadoInfo ? estadoInfo.label : item.estado;
+            html += `<tr><td>${item.fecha}</td><td>${label}</td><td>${esc(item.comentario || '')}</td><td>${esc(item.expediente || '')}</td></tr>`;
+        });
+        html += `</tbody></table>`;
+        return html;
+    }
+
+    async function registrarCambioJudicial() {
+        const estadoSelect = document.getElementById('estadoJudicialSelect');
+        const comentarioInput = document.getElementById('comentarioJudicial');
+        const expedienteInput = document.getElementById('expedienteJudicial');
+        const nuevoEstado = estadoSelect.value;
+        const comentario = comentarioInput.value.trim();
+        const expediente = expedienteInput.value.trim();
+
+        if (!nuevoEstado) {
+            toast('Seleccione un estado.', true);
+            return;
+        }
+
+        const cambio = {
+            fecha: new Date().toISOString().slice(0,10),
+            estado: nuevoEstado,
+            comentario: comentario || '',
+            expediente: expediente || ''
+        };
+
+        if (!editing.historialJudicial) editing.historialJudicial = [];
+        editing.historialJudicial.push(cambio);
+
+        try {
+            loading(true);
+            await db.collection('vigiladores').doc(editing.id).update({
+                estadoJudicial: nuevoEstado,
+                historialJudicial: editing.historialJudicial,
+                fechaUltimoCambioJudicial: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            toast('Cambio judicial registrado correctamente.');
+            renderPanes();
+        } catch (error) {
+            toast('Error al registrar: ' + error.message, true);
+        } finally {
+            loading(false);
+        }
+    }
+    
     let tipoEntregaActual = 'inicial';
 
     function mostrarFormularioRopa(tipo) {
@@ -572,19 +637,22 @@
         }
     }
     
-    // Dar de baja (baja lógica)
+    // Iniciar proceso de baja por etapas
     async function darDeBaja(id) {
         if (!id) return;
-        if (!confirm("Iniciar proceso de baja para este vigilador? Se puede avanzar por etapas.")) return;
+        if (!confirm("⚠️ Iniciar proceso de baja para este vigilador? Se avanzará por etapas (mediación → intimación → notificaciones → cierre).")) {
+            return;
+        }
         try {
             loading(true);
             await db.collection("vigiladores").doc(id).update({
-                 estado: "BAJA_PROCESO",
-                 etapaProceso: "mediacion",
-                 fechaInicioProceso: firebase.firestore.FieldValue.serverTimestamp(),
-                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                estado: "BAJA_PROCESO",
+                etapaProceso: "mediacion",
+                fechaInicioProceso: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            toast("Proceso de baja iniciado. Etapa: Mediación.");
+            toast("🟡 Proceso de baja iniciado. Etapa: Mediación.");
+            render(); // Refrescar la lista para ver el cambio
         } catch (error) {
             toast("Error al iniciar proceso: " + error.message, true);
         } finally {
@@ -797,7 +865,7 @@
             </div>
 
             <div class="tabs">
-              ${["Datos Personales","Habilitaciones","Datos Laborales","Ropa de Trabajo","RR.HH.","Disciplina"]
+              ${["Datos Personales","Habilitaciones","RRHH","Ropa de Trabajo","Estado judicial","Disciplina"]
                 .map((x,i) => `<button class="tab ${i === 0 ? "active" : ""}" onclick="showTab(${i})">${x}</button>`).join("")}
             </div>
 
@@ -1028,7 +1096,7 @@
             </section>
 
             <section class="pane ${activeTab === 2 ? "active" : ""}">
-                <p class="section-title">Datos laborales</p>
+                <p class="section-title">RRHH</p>
                 <div class="grid">
                     ${field("Legajo","legajo")}
                     ${field("Fecha de ingreso","fechaIngreso","date")}
@@ -1090,8 +1158,29 @@
             </section>
 
             <section class="pane ${activeTab === 4 ? "active" : ""}">
-                <div class="grid">${field("Observaciones","observaciones","textarea","full")}</div>
-                <div id="evaluacionesBox"></div>
+                <p class="section-title">Estado judicial</p>
+                <div class="grid">
+                    <div class="field">
+                        <label>Estado actual</label>
+                        <select id="estadoJudicialSelect" style="width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:7px;">
+                            <option value="">Seleccionar</option>
+                            ${ESTADOS_JUDICIALES.map(e => `<option value="${e.value}" ${editing?.estadoJudicial === e.value ? 'selected' : ''}>${e.label}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Número de expediente (opcional)</label>
+                        <input id="expedienteJudicial" type="text" value="${esc(editing?.expedienteNumero || '')}">
+                    </div>
+                    <div class="field">
+                        <label>Comentario</label>
+                        <input id="comentarioJudicial" type="text" placeholder="Ej. Se inició demanda laboral">
+                    </div>
+                </div>
+                <button type="button" class="primary" onclick="registrarCambioJudicial()" style="margin-top: 10px;">Registrar cambio</button>
+                <hr style="margin: 20px 0;">
+                <div id="historialJudicialBox">
+                    ${renderHistorialJudicial()}
+                </div>
             </section>
 
             <section class="pane ${activeTab === 5 ? "active" : ""}">
