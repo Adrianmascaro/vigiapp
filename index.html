@@ -164,6 +164,16 @@
     }[c]));
 
     const sizesNum = Array.from({length:13}, (_,i) => 36 + i * 2);
+
+    const PRENDAS_ESTANDAR = [
+        { tipo: 'Camisa', cantidad: 2 },
+        { tipo: 'Pantalón', cantidad: 2 },
+        { tipo: 'Tricota', cantidad: 1 },
+        { tipo: 'Campera', cantidad: 1 },
+        { tipo: 'Cinturón', cantidad: 1 },
+        { tipo: 'Corbata', cantidad: 1 }
+    ];
+    
     const sizesLetter = ["S","M","L","XL","XXL","XXXL"];
 
     function options(list, selected = "") {
@@ -250,6 +260,39 @@
       return diff;
     }
 
+function calcularPrendasPendientes(vigilador) {
+    if (!vigilador) return [];
+    
+    // Obtener todas las entregas de ropa
+    const entregas = vigilador.entregasRopa || [];
+    
+    // Acumular cantidades entregadas por tipo (sin importar talla)
+    const entregado = {};
+    entregas.forEach(entrega => {
+        entrega.prendas.forEach(prenda => {
+            const clave = prenda.tipo;
+            if (!entregado[clave]) entregado[clave] = 0;
+            entregado[clave] += prenda.cantidad;
+        });
+    });
+
+    // Calcular faltantes comparando con el estándar
+    const pendientes = [];
+    PRENDAS_ESTANDAR.forEach(estandar => {
+        const entregadoCantidad = entregado[estandar.tipo] || 0;
+        const faltante = estandar.cantidad - entregadoCantidad;
+        if (faltante > 0) {
+            pendientes.push({
+                tipo: estandar.tipo,
+                faltante: faltante,
+                requerido: estandar.cantidad,
+                entregado: entregadoCantidad
+            });
+        }
+    });
+    return pendientes;
+}
+    
 // Dar de baja (baja lógica)
     async function darDeBaja(id) {
       if (!id) return;
@@ -350,25 +393,25 @@
     }*/
 
     function render() {
-      const query = ($("#search").value || "").toLowerCase();
-      const form = $("#filterForm");
+        const query = ($("#search").value || "").toLowerCase();
+        const form = $("#filterForm");
 
-      let list = vigiladores.filter(v =>
-        `${v.nombre} ${v.apellido} ${v.dni}`.toLowerCase().includes(query)
-      );
+        let list = vigiladores.filter(v =>
+            `${v.nombre} ${v.apellido} ${v.dni}`.toLowerCase().includes(query)
+        );
 
     // Aplicar filtros avanzados (si están visibles)
-      if (!form.classList.contains("hidden")) {
-          const data = new FormData(form);
-          const minNota = Number(data.get("minNota") || 0);
+        if (!form.classList.contains("hidden")) {
+            const data = new FormData(form);
+            const minNota = Number(data.get("minNota") || 0);
 
-          list = list.filter(v =>
-              (!data.get("categoria") || v.categoria === data.get("categoria")) &&
-              (!data.get("domicilio") || norm(v.domicilio).includes(norm(data.get("domicilio")))) &&
-              (!data.get("habTipo") || v.habilitacionTipo === data.get("habTipo")) &&
-              (!data.get("venceAntes") || !v.habilitacionVencimiento || v.habilitacionVencimiento <= data.get("venceAntes"))
-          );
-      }
+            list = list.filter(v =>
+                (!data.get("categoria") || v.categoria === data.get("categoria")) &&
+                (!data.get("domicilio") || norm(v.domicilio).includes(norm(data.get("domicilio")))) &&
+                (!data.get("habTipo") || v.habilitacionTipo === data.get("habTipo")) &&
+                (!data.get("venceAntes") || !v.habilitacionVencimiento || v.habilitacionVencimiento <= data.get("venceAntes"))
+            );
+        }
 
     // Ordenar alfabéticamente por apellido
       list.sort((a, b) => (a.apellido || "").localeCompare(b.apellido || ""));
@@ -378,42 +421,50 @@
         // █████████████████████████████████████████████
         // 1. ADVERTENCIA DE VENCIMIENTO (ícono)
         // █████████████████████████████████████████████
-          const diff = calcularDiasRestantes(v.habilitacionVencimiento);
-          let warningIcon = '';
-          if (diff !== null && diff <= 30 && diff >= 0) {
-              warningIcon = `<span style="color:#dc3545; font-weight:bold; margin-left:5px;" title="Vence en ${diff} días">⚠️</span>`;
-          }
+            const diff = calcularDiasRestantes(v.habilitacionVencimiento);
+            let warningIcon = '';
+            if (diff !== null && diff <= 30 && diff >= 0) {
+                warningIcon = `<span style="color:#dc3545; font-weight:bold; margin-left:5px;" title="Vence en ${diff} días">⚠️</span>`;
+            }
 
         // █████████████████████████████████████████████
         // 2. ESTADO DEL VIGILADOR (ALTA / BAJA)
         // █████████████████████████████████████████████
-          const esBaja = v.estado === 'BAJA';
-          const estadoLabel = esBaja ? '<span style="color:#c53d3d; font-weight:bold; margin-left:8px;">(Dado de baja)</span>' : '';
+            const esBaja = v.estado === 'BAJA';
+            const estadoLabel = esBaja ? '<span style="color:#c53d3d; font-weight:bold; margin-left:8px;">(Dado de baja)</span>' : '';
 
+            const pendientes = calcularPrendasPendientes(v);
+            const tienePendientes = pendientes.length > 0;
+            let iconoRopa = '';
+            if (tienePendientes) {
+                const detalle = pendientes.map(p => `${p.tipo} x${p.faltante}`).join(', ');
+                iconoRopa = `<span style="margin-left:5px; color:#856404; cursor:help;" title="Faltan prendas: ${detalle}">🧥</span>`;
+            }
+        
         // █████████████████████████████████████████████
         // 3. BOTÓN DE ACCIÓN (Dar de baja / Reactivar)
         // █████████████████████████████████████████████
-          let botonAccion;
-              if (esBaja) {
-                  botonAccion = `<button class="secondary" onclick="reactivar('${v.id}')" style="color:#18865b;">Reactivar</button>`;
-              } else {
+            let botonAccion;
+                if (esBaja) {
+                    botonAccion = `<button class="secondary" onclick="reactivar('${v.id}')" style="color:#18865b;">Reactivar</button>`;
+                } else {
                     botonAccion = `<button class="secondary danger" onclick="darDeBaja('${v.id}')" style="border-color:#c53d3d; color:#c53d3d;">Dar de baja</button>`;
-              }
+                }
 
-              return `
-                  <div class="row ${esBaja ? 'row-baja' : ''}">
-                      <div class="avatar">${v.foto ? `<img class="avatar" src="${v.foto}">` : initials(v)}</div>
-                      <div>
-                          <strong>${esc(v.apellido)}, ${esc(v.nombre)} ${warningIcon} ${estadoLabel}</strong>
-                          <div class="muted">DNI ${esc(v.dni || "—")} · Legajo ${esc(v.legajo || "—")}</div>
-                      </div>
-                      <div style="display:flex; gap:8px; align-items:center;">
-                          ${(v.sanciones || []).length ? '<span class="warning" title="Tiene sanciones">⚠</span>' : ''}
-                          <button class="secondary edit" onclick="openModal('${v.id}')">Editar</button>
-                          ${botonAccion}
-                      </div>
-                  </div>
-              `;
+                return `
+                    <div class="row ${esBaja ? 'row-baja' : ''}">
+                        <div class="avatar">${v.foto ? `<img class="avatar" src="${v.foto}">` : initials(v)}</div>
+                        <div>
+                            <strong>${esc(v.apellido)}, ${esc(v.nombre)} ${warningIcon} ${estadoLabel} ${iconoRopa}</strong>
+                            <div class="muted">DNI ${esc(v.dni || "—")} · Legajo ${esc(v.legajo || "—")}</div>
+                        </div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            ${(v.sanciones || []).length ? '<span class="warning" title="Tiene sanciones">⚠</span>' : ''}
+                            <button class="secondary edit" onclick="openModal('${v.id}')">Editar</button>
+                            ${botonAccion}
+                        </div>
+                    </div>
+                `;
       }).join("") : '<div class="empty">No se encontraron vigiladores.</div>';
     }    
     
@@ -544,6 +595,7 @@
         </section>
 
         <section class="pane ${activeTab === 2 ? "active" : ""}">
+          ${htmlPendientes}
           <p class="section-title">Datos laborales</p>
           <div class="grid">
             ${field("Legajo","legajo")}
@@ -559,6 +611,24 @@
         </section>
 
         <section class="pane ${activeTab === 3 ? "active" : ""}">
+          
+        // Calcular pendientes para el vigilador actual (editing)
+        const pendientes = editing ? calcularPrendasPendientes(editing) : [];
+        let htmlPendientes = '';
+        if (pendientes.length > 0) {
+          htmlPendientes = `
+            <div style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffeeba; display: flex; align-items: flex-start; gap: 10px;">
+              <span style="font-size: 24px;">🧥</span>
+              <div>
+                <strong>Prendas pendientes de entrega:</strong>
+                <ul style="margin:5px 0; padding-left:20px;">
+                  ${pendientes.map(p => `<li>${p.tipo}: faltan <strong>${p.faltante}</strong> unidades (se requieren ${p.requerido})</li>`).join('')}
+                </ul>
+                <small>Registra un <strong>"Cambio"</strong> para completar la entrega.</small>
+              </div>
+            </div>
+          `;
+        }
           <p class="section-title">Talles y entrega de indumentaria</p>
           <div class="grid">
             ${select("Talla camisa","camisaTalla",sizesNum)}
