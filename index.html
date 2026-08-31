@@ -92,6 +92,12 @@
     <section class="container">
       <div class="toolbar">
         <input id="search" class="search" placeholder="Buscar por nombre, apellido o DNI…" oninput="render()">
+        <select id="filtroEstado" onchange="render()" style="padding:10px 13px; border:1px solid var(--line); border-radius:8px; background:white;">
+            <option value="todos">Todos</option>
+            <option value="ALTA">🟢 Activos</option>
+            <option value="BAJA_PROCESO">🟡 En proceso de baja</option>
+            <option value="BAJA_DEFINITIVA">🔴 Bajas definitivas</option>
+        </select>
         <button class="secondary" onclick="toggleFilters()">Filtros avanzados</button>
         <button class="secondary" onclick="exportJSON()">Exportar JSON</button>
         <label class="secondary" style="padding:10px 14px;font-weight:650;cursor:pointer">
@@ -174,6 +180,14 @@
         { tipo: 'Cinturón', cantidad: 1 },
         { tipo: 'Corbata', cantidad: 1 }
     ];
+
+    const ETAPAS_PROCESO = {
+        'mediacion': 'Mediación',
+        'intimacion': 'Intimación',
+        'notificacion': 'Notificaciones legales',
+        'cierre': 'Cierre de expediente'
+    };
+    const ETAPAS_ORDEN = ['mediacion', 'intimacion', 'notificacion', 'cierre'];
     
     const sizesLetter = ["S","M","L","XL","XXL","XXXL"];
 
@@ -509,27 +523,74 @@
             loading(false);
         }
     }
+
+    // Avanzar etapa del proceso de baja
+    async function avanzarEtapaProceso(id) {
+        if (!id) return;
+        const vigilador = vigiladores.find(v => v.id === id);
+        if (!vigilador || vigilador.estado !== 'BAJA_PROCESO') {
+            toast('El vigilador no está en proceso de baja.', true);
+            return;
+        }
+        const etapaActual = vigilador.etapaProceso || 'mediacion';
+        const indexActual = ETAPAS_ORDEN.indexOf(etapaActual);
+        if (indexActual === -1 || indexActual === ETAPAS_ORDEN.length - 1) {
+            toast('Ya está en la última etapa. Usá "Finalizar baja" para cerrar el proceso.', true);
+            return;
+        }
+        const siguienteEtapa = ETAPAS_ORDEN[indexActual + 1];
+        try {
+            loading(true);
+            await db.collection("vigiladores").doc(id).update({
+                etapaProceso: siguienteEtapa,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            toast(`Etapa avanzada a: ${ETAPAS_PROCESO[siguienteEtapa]}`);
+        } catch (error) {
+            toast("Error al avanzar: " + error.message, true);
+        } finally {
+            loading(false);
+        }
+    }
+
+    // Finalizar baja (pasar a BAJA_DEFINITIVA)
+    async function finalizarBaja(id) {
+        if (!id) return;
+        if (!confirm("¿Finalizar definitivamente la baja de este vigilador? Esta acción no se puede revertir.")) return;
+        try {
+            loading(true);
+            await db.collection("vigiladores").doc(id).update({
+                estado: "BAJA_DEFINITIVA",
+                fechaBaja: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            toast("Baja definitiva registrada.");
+        } catch (error) {
+            toast("Error al finalizar baja: " + error.message, true);
+        } finally {
+            loading(false);
+        }
+    }
     
-// Dar de baja (baja lógica)
+    // Dar de baja (baja lógica)
     async function darDeBaja(id) {
-      if (!id) return;
-      if (!confirm("¿Estás seguro de dar de baja a este vigilador? Se puede reactivar después.")) {
-          return;
-      }
-      try {
-        loading(true);
-        await db.collection("vigiladores").doc(id).update({
-            estado: "BAJA",
-            fechaBaja: firebase.firestore.FieldValue.serverTimestamp(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        toast("Vigilador dado de baja correctamente.");
-      } catch (error) {
-        toast("Error al dar de baja: " + error.message, true);
-      } finally {
-        loading(false);
-      }
-    }    
+        if (!id) return;
+        if (!confirm("Iniciar proceso de baja para este vigilador? Se puede avanzar por etapas.")) return;
+        try {
+            loading(true);
+            await db.collection("vigiladores").doc(id).update({
+                 estado: "BAJA_PROCESO",
+                 etapaProceso: "mediacion",
+                 fechaInicioProceso: firebase.firestore.FieldValue.serverTimestamp(),
+                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            toast("Proceso de baja iniciado. Etapa: Mediación.");
+        } catch (error) {
+            toast("Error al iniciar proceso: " + error.message, true);
+        } finally {
+            loading(false);
+        }
+    }
 
 // Reactivar (volver a ALTA)
     async function reactivar(id) {
@@ -617,6 +678,12 @@
             `${v.nombre} ${v.apellido} ${v.dni}`.toLowerCase().includes(query)
         );
 
+      // Filtro por estado (desde el selector)
+        const estadoFiltro = document.getElementById('filtroEstado').value;
+        if (estadoFiltro !== 'todos') {
+            list = list.filter(v => v.estado === estadoFiltro);
+        }
+      
     // Aplicar filtros avanzados (si están visibles)
         if (!form.classList.contains("hidden")) {
             const data = new FormData(form);
