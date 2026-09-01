@@ -770,14 +770,21 @@
 
     // Construir el HTML de la lista (SOLO UNA VEZ)
       $("#list").innerHTML = list.length ? list.map(v => {
-        // █████████████████████████████████████████████
-        // 1. ADVERTENCIA DE VENCIMIENTO (ícono)
-        // █████████████████████████████████████████████
-            const diff = calcularDiasRestantes(v.habilitacionVencimiento);
-            let warningIcon = '';
-            if (diff !== null && diff <= 30 && diff >= 0) {
-                warningIcon = `<span style="color:#dc3545; font-weight:bold; margin-left:5px;" title="Vence en ${diff} días">⚠️</span>`;
-            }
+      // █████████████████████████████████████████████
+      // ADVERTENCIA DE VENCIMIENTOS (3 independientes)
+      // █████████████████████████████████████████████
+            let warningIcons = '';
+            const vencimientosCheck = [
+                { campo: 'habilitacionVencimiento', emoji: '📋', label: 'Habilitación' },
+                { campo: 'revalidaFechaVenc', emoji: '🔄', label: 'Revalida' },
+                { campo: 'biometricoFechaVenc', emoji: '🖐️', label: 'Biometría' }
+            ];
+            vencimientosCheck.forEach(({ campo, emoji, label }) => {
+                const diff = calcularDiasRestantes(v[campo]);
+                if (diff !== null && diff <= 30 && diff >= 0) {
+                    warningIcons += `<span style="color:#dc3545; font-weight:bold; margin-left:5px; cursor:help;" title="${label}: vence en ${diff} días">${emoji}</span>`;
+                }
+            });
 
         // █████████████████████████████████████████████
         // 2. ESTADO DEL VIGILADOR (ALTA / BAJA)
@@ -807,7 +814,7 @@
                     <div class="row ${esBaja ? 'row-baja' : ''}">
                         <div class="avatar">${v.foto ? `<img class="avatar" src="${v.foto}">` : initials(v)}</div>
                         <div>
-                            <strong>${esc(v.apellido)}, ${esc(v.nombre)} ${warningIcon} ${estadoLabel} ${iconoRopa}</strong>
+                            <strong>${esc(v.apellido)}, ${esc(v.nombre)} ${warningIcons} ${estadoLabel} ${iconoRopa}</strong>
                             <div class="muted">DNI ${esc(v.dni || "—")} · Legajo ${esc(v.legajo || "—")}</div>
                         </div>
                         <div style="display:flex; gap:8px; align-items:center;">
@@ -935,7 +942,7 @@
           </div>
         </section>
 
-        <section class="pane ${activeTab === 1 ? "active" : ""}">
+        <section class="pane ${ ? "active" : ""}">
           ${advertenciaHTML}
           <p class="section-title">Habilitación vigente</p>
           <div class="grid">
@@ -1085,16 +1092,108 @@
             </section>
 
             <section class="pane ${activeTab === 1 ? "active" : ""}">
-                ${advertenciaHTML}
-                <p class="section-title">Habilitación vigente</p>
-                <div class="grid">
-                    ${select("Tipo","habilitacionTipo",["Provincia","CABA"])}
-                    ${field("Número","habilitacionNumero")}
-                    ${field("Fecha de vencimiento","habilitacionVencimiento","date")}
-                    ${field("Organismo","habilitacionOrganismo","text","wide")}
+    
+    <!-- ========================================= -->
+    <!-- SECCIÓN 1: HABILITACIÓN                   -->
+    <!-- ========================================= -->
+                <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 20px; background: #fafafa;">
+                    <h4 style="margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
+                        <span>📋</span> Habilitación
+                        ${(() => {
+                            const diff = calcularDiasRestantes(editing?.habilitacionVencimiento);
+                            if (diff !== null && diff <= 30 && diff >= 0) {
+                                return `<span style="background: #ffc107; color: #856404; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">⚠️ Vence en ${diff} días</span>`;
+                            }
+                            return '';
+                        })()}
+                    </h4>
+                    <div class="grid">
+                        ${select("Tipo","habilitacionTipo",["Provincia","CABA","Ambas"])}
+                        ${field("Número","habilitacionNumero")}
+                        ${field("Organismo","habilitacionOrganismo","text","wide")}
+                        ${field("Fecha de vencimiento","habilitacionVencimiento","date")}
+                    </div>
+                    ${(() => {
+                        const diff = calcularDiasRestantes(editing?.habilitacionVencimiento);
+                        if (diff !== null && diff <= 30 && diff >= 0) {
+                            const fecha = new Date(editing.habilitacionVencimiento).toLocaleDateString('es-AR');
+                            return `
+                                <div style="background: #fff3cd; color: #856404; padding: 8px 12px; border-radius: 6px; margin-top: 10px; border: 1px solid #ffeeba;">
+                                    ⚠️ <strong>Vence el ${fecha}</strong> (faltan ${diff} días)
+                                </div>
+                            `;
+                        }
+                        return '';
+                    })()}
+                </div>
+
+    <!-- ========================================= -->
+    <!-- SECCIÓN 2: REVALIDA                       -->
+    <!-- ========================================= -->
+                <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 20px; background: #fafafa;">
+                    <h4 style="margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
+                        <span>🔄</span> Revalida
+                        ${(() => {
+                            const diff = calcularDiasRestantes(editing?.revalidaFechaVenc);
+                            if (diff !== null && diff <= 30 && diff >= 0) {
+                                return `<span style="background: #ffc107; color: #856404; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">⚠️ Vence en ${diff} días</span>`;
+                            }
+                            return '';
+                        })()}
+                    </h4>
+                    <div class="grid">
+                        ${field("Número","revalidaNumero")}
+                        ${field("Organismo","revalidaOrganismo","text","wide")}
+                        ${field("Fecha de vencimiento","revalidaFechaVenc","date")}
+                    </div>
+                    ${(() => {
+                        const diff = calcularDiasRestantes(editing?.revalidaFechaVenc);
+                        if (diff !== null && diff <= 30 && diff >= 0) {
+                            const fecha = new Date(editing.revalidaFechaVenc).toLocaleDateString('es-AR');
+                            return `
+                                <div style="background: #fff3cd; color: #856404; padding: 8px 12px; border-radius: 6px; margin-top: 10px; border: 1px solid #ffeeba;">
+                                    ⚠️ <strong>Vence el ${fecha}</strong> (faltan ${diff} días)
+                                </div>
+                            `;
+                        }
+                        return '';
+                    })()}
+                </div>
+
+    <!-- ========================================= -->
+    <!-- SECCIÓN 3: BIOMETRÍA                     -->
+    <!-- ========================================= -->
+                <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; background: #fafafa;">
+                    <h4 style="margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
+                        <span>🖐️</span> Datos biométricos
+                        ${(() => {
+                            const diff = calcularDiasRestantes(editing?.biometricoFechaVenc);
+                            if (diff !== null && diff <= 30 && diff >= 0) {
+                                return `<span style="background: #ffc107; color: #856404; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">⚠️ Vence en ${diff} días</span>`;
+                            }
+                            return '';
+                        })()}
+                    </h4>
+                    <div class="grid">
+                        ${field("Número","biometricoNumero")}
+                        ${field("Organismo","biometricoOrganismo","text","wide")}
+                        ${field("Fecha de vencimiento","biometricoFechaVenc","date")}
+                    </div>
+                    ${(() => {
+                        const diff = calcularDiasRestantes(editing?.biometricoFechaVenc);
+                        if (diff !== null && diff <= 30 && diff >= 0) {
+                            const fecha = new Date(editing.biometricoFechaVenc).toLocaleDateString('es-AR');
+                            return `
+                                <div style="background: #fff3cd; color: #856404; padding: 8px 12px; border-radius: 6px; margin-top: 10px; border: 1px solid #ffeeba;">
+                                    ⚠️ <strong>Vence el ${fecha}</strong> (faltan ${diff} días)
+                                </div>
+                            `;
+                        }
+                        return '';
+                    })()}
                 </div>
             </section>
-
+            
             <section class="pane ${activeTab === 2 ? "active" : ""}">
                 <p class="section-title">RRHH</p>
                 <div class="grid">
@@ -1304,6 +1403,11 @@
       data.entregas = arrays.entregas;
       data.evaluaciones = arrays.evaluaciones;
       data.sanciones = arrays.sanciones;
+      // Inicializar campos de revalida y biometría (si no vienen en el formulario)
+      data.revalidaNumero = data.revalidaNumero || '';
+      data.revalidaOrganismo = data.revalidaOrganismo || '';
+      data.biometricoNumero = data.biometricoNumero || '';
+      data.biometricoOrganismo = data.biometricoOrganismo || '';
       data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
 
       try {
