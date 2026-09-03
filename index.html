@@ -327,18 +327,19 @@
       return diff;
     }
 
+    // -------- FUNCIONES PARA GESTIÓN DE ROPA --------
     function calcularPrendasPendientes(vigilador) {
         if (!vigilador) return [];
     
-    // Obtener tipo de uniforme (si no tiene, asumir 1 o pedir que seleccione)
+        // Determinar tipo de uniforme (si no tiene, usar 1 por defecto)
         const tipo = vigilador.tipoUniforme || 1;
         const estandar = UNIFORMES[tipo];
-        if (!estandar) return [];
+        if (!estandar) return []; // Si el tipo no existe, no hay pendientes
     
-    // Obtener todas las entregas de ropa
+        // Obtener todas las entregas de ropa
         const entregas = vigilador.entregasRopa || [];
     
-    // Acumular cantidades entregadas por tipo
+        // Acumular cantidades entregadas por tipo (sin importar talla)
         const entregado = {};
         entregas.forEach(entrega => {
             entrega.prendas.forEach(prenda => {
@@ -348,7 +349,7 @@
             });
         });
 
-    // Calcular faltantes comparando con el estándar del uniforme
+        // Calcular faltantes comparando con el estándar del uniforme
         const pendientes = [];
         estandar.prendas.forEach(est => {
             const entregadoCantidad = entregado[est.tipo] || 0;
@@ -364,7 +365,6 @@
         });
         return pendientes;
     }
-    // -------- FUNCIONES PARA GESTIÓN DE ROPA --------
 
     function renderHistorialRopa() {
         const entregas = editing?.entregasRopa || [];
@@ -471,8 +471,18 @@
             return;
         }
         const nuevoTipo = parseInt(valor);
+        if (isNaN(nuevoTipo) || nuevoTipo < 1 || nuevoTipo > 3) {
+            toast('Tipo de uniforme inválido.', true);
+            return;
+        }
         if (nuevoTipo === editing.tipoUniforme) return;
     
+        // Verificar que el tipo exista en UNIFORMES
+        if (!UNIFORMES[nuevoTipo]) {
+            toast('Tipo de uniforme no definido.', true);
+            return;
+        }
+
         try {
             loading(true);
             await db.collection('vigiladores').doc(editing.id).update({
@@ -481,7 +491,7 @@
             });
             editing.tipoUniforme = nuevoTipo;
             toast(`Tipo de uniforme actualizado a: ${UNIFORMES[nuevoTipo].nombre}`);
-            renderPanes(); // Refrescar para actualizar los pendientes
+            renderPanes(); // Refrescar la pestaña para actualizar pendientes
         } catch (error) {
             toast('Error al actualizar tipo de uniforme: ' + error.message, true);
         } finally {
