@@ -172,7 +172,7 @@
     const sizesNum = Array.from({length:13}, (_,i) => 36 + i * 2);
     const tiposPrenda = ["Camisa c/vivos", "Camisa lisa", "Chomba", "Saco", "Pantalón c/vivos", "Pantalón liso", "Pantalón cargo", "Tricota", "Campera", "Sobretodo", "Corbata", "Cinturón"];
     
-    const PRENDAS_ESTANDAR = [
+    /*const PRENDAS_ESTANDAR = [
         { tipo: 'Camisa c/vivos', cantidad: 2 },
         { tipo: 'Camisa lisa', cantidad: 2 },
         { tipo: 'Chomba', cantidad: 2 },
@@ -185,18 +185,53 @@
         { tipo: 'Sobretodo', cantidad: 1 },
         { tipo: 'Cinturón', cantidad: 1 },
         { tipo: 'Corbata', cantidad: 1 }
-    ];
+    ];*/
 
+    const UNIFORMES = {
+        'uniforme1': {
+            nombre: 'Uniforme 1 (Vivos)',
+            prendas: [
+                { tipo: 'Camisa c/vivos', cantidad: 2 },
+                { tipo: 'Pantalón c/vivos', cantidad: 2 },
+                { tipo: 'Tricota', cantidad: 1 },
+                { tipo: 'Campera', cantidad: 1 },
+                { tipo: 'Cinturón', cantidad: 1 },
+                { tipo: 'Corbata', cantidad: 1 }
+            ]
+        },
+        'uniforme2': {
+            nombre: 'Uniforme 2 (Lisos)',
+            prendas: [
+                { tipo: 'Camisa lisa', cantidad: 2 },
+                { tipo: 'Pantalón liso', cantidad: 2 },
+                { tipo: 'Saco', cantidad: 2 },
+                { tipo: 'Sobretodo', cantidad: 1 },
+                { tipo: 'Corbata', cantidad: 1 },
+                { tipo: 'Cinturón', cantidad: 1 }
+            ]
+        },
+        'uniforme3': {
+            nombre: 'Uniforme 3 (Cargo)',
+            prendas: [
+                { tipo: 'Chomba', cantidad: 2 },
+                { tipo: 'Pantalón cargo', cantidad: 2 },
+                { tipo: 'Tricota', cantidad: 1 },
+                { tipo: 'Campera', cantidad: 1 }
+            ]
+        }
+    };
+    
     const ETAPAS_PROCESO = {
         'mediacion': 'Mediación',
         'intimacion': 'Intimación',
         'notificacion': 'Notificaciones legales',
         'cierre': 'Cierre de expediente'
     };
-    const ETAPAS_ORDEN = ['mediacion', 'intimacion', 'notificacion', 'cierre'];
-    
+
     const sizesLetter = ["S","M","L","XL","XXL","XXXL"];
 
+    const ETAPAS_ORDEN = ['mediacion', 'intimacion', 'notificacion', 'cierre'];
+        
     const ESTADOS_JUDICIALES = [
         { value: 'renuncia_voluntaria', label: 'Renuncia voluntaria' },
         { value: 'reserva_puesto', label: 'Reserva del puesto' },
@@ -293,38 +328,42 @@
     }
 
     function calcularPrendasPendientes(vigilador) {
-      if (!vigilador) return [];
+        if (!vigilador) return [];
+    
+    // Obtener tipo de uniforme (si no tiene, asumir 1 o pedir que seleccione)
+        const tipo = vigilador.tipoUniforme || 1;
+        const estandar = UNIFORMES[tipo];
+        if (!estandar) return [];
     
     // Obtener todas las entregas de ropa
-      const entregas = vigilador.entregasRopa || [];
+        const entregas = vigilador.entregasRopa || [];
     
-    // Acumular cantidades entregadas por tipo (sin importar talla)
-      const entregado = {};
-      entregas.forEach(entrega => {
-          entrega.prendas.forEach(prenda => {
-              const clave = prenda.tipo;
-              if (!entregado[clave]) entregado[clave] = 0;
-              entregado[clave] += prenda.cantidad;
-          });
-      });
+    // Acumular cantidades entregadas por tipo
+        const entregado = {};
+        entregas.forEach(entrega => {
+            entrega.prendas.forEach(prenda => {
+                const clave = prenda.tipo;
+                if (!entregado[clave]) entregado[clave] = 0;
+                entregado[clave] += prenda.cantidad;
+            });
+        });
 
-    // Calcular faltantes comparando con el estándar
-      const pendientes = [];
-      PRENDAS_ESTANDAR.forEach(estandar => {
-          const entregadoCantidad = entregado[estandar.tipo] || 0;
-          const faltante = estandar.cantidad - entregadoCantidad;
-          if (faltante > 0) {
-              pendientes.push({
-                  tipo: estandar.tipo,
-                  faltante: faltante,
-                  requerido: estandar.cantidad,
-                  entregado: entregadoCantidad
-              });
-          }
-      });
-      return pendientes;
+    // Calcular faltantes comparando con el estándar del uniforme
+        const pendientes = [];
+        estandar.prendas.forEach(est => {
+            const entregadoCantidad = entregado[est.tipo] || 0;
+            const faltante = est.cantidad - entregadoCantidad;
+            if (faltante > 0) {
+                pendientes.push({
+                    tipo: est.tipo,
+                    faltante: faltante,
+                    requerido: est.cantidad,
+                    entregado: entregadoCantidad
+                });
+            }
+        });
+        return pendientes;
     }
-
     // -------- FUNCIONES PARA GESTIÓN DE ROPA --------
 
     function renderHistorialRopa() {
@@ -423,6 +462,33 @@
     
     let tipoEntregaActual = 'inicial';
 
+    async function cambiarTipoUniforme(valor) {
+        if (!editing.id) {
+            toast('Primero guarde el vigilador para poder cambiar el tipo de uniforme.', true);
+            // Revertir el select al valor anterior
+            const select = document.getElementById('tipoUniformeSelect');
+            select.value = editing.tipoUniforme || 1;
+            return;
+        }
+        const nuevoTipo = parseInt(valor);
+        if (nuevoTipo === editing.tipoUniforme) return;
+    
+        try {
+            loading(true);
+            await db.collection('vigiladores').doc(editing.id).update({
+                tipoUniforme: nuevoTipo,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            editing.tipoUniforme = nuevoTipo;
+            toast(`Tipo de uniforme actualizado a: ${UNIFORMES[nuevoTipo].nombre}`);
+            renderPanes(); // Refrescar para actualizar los pendientes
+        } catch (error) {
+            toast('Error al actualizar tipo de uniforme: ' + error.message, true);
+        } finally {
+            loading(false);
+        }
+    }
+    
     function mostrarFormularioRopa(tipo) {
         tipoEntregaActual = tipo;
         const form = document.getElementById('formularioRopa');
@@ -768,7 +834,10 @@
                         <div class="avatar">${v.foto ? `<img class="avatar" src="${v.foto}">` : initials(v)}</div>
                         <div>
                             <strong>${esc(v.apellido)}, ${esc(v.nombre)} ${warningIcons} ${estadoLabel} ${iconoRopa}</strong>
-                            <div class="muted">DNI ${esc(v.dni || "—")} · Legajo ${esc(v.legajo || "—")}</div>
+                            <div class="muted">
+                                DNI ${esc(v.dni || "—")} · Legajo ${esc(v.legajo || "—")}
+                                ${v.tipoUniforme ? ` · Uniforme ${v.tipoUniforme}` : ''}
+                            </div>
                         </div>
                         <div style="display:flex; gap:8px; align-items:center;">
                             ${(v.sanciones || []).length ? '<span class="warning" title="Tiene sanciones">⚠</span>' : ''}
@@ -1035,6 +1104,19 @@
 
             <section class="pane ${activeTab === 3 ? "active" : ""}">
                 ${htmlPendientes}
+                <!-- Selector de tipo de uniforme -->
+                <div style="background: #e9f0f7; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                    <label style="font-weight: bold;">Tipo de uniforme:</label>
+                    <select id="tipoUniformeSelect" onchange="cambiarTipoUniforme(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line);">
+                        <option value="1" ${editing?.tipoUniforme == 1 ? 'selected' : ''}>Uniforme 1 (Vivos)</option>
+                        <option value="2" ${editing?.tipoUniforme == 2 ? 'selected' : ''}>Uniforme 2 (Lisos)</option>
+                        <option value="3" ${editing?.tipoUniforme == 3 ? 'selected' : ''}>Uniforme 3 (Cargo)</option>
+                    </select>
+                    <span style="font-size: 13px; color: #526273;">
+                        ${editing?.tipoUniforme ? `Estándar: ${UNIFORMES[editing.tipoUniforme].nombre}` : 'Seleccione un tipo para ver las prendas requeridas'}
+                    </span>
+                </div>
+                
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                     <h3 style="margin:0;">Entregas de ropa</h3>
                     <div>
