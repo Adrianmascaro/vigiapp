@@ -1113,7 +1113,7 @@
                         <option value="3" ${editing?.tipoUniforme == 3 ? 'selected' : ''}>Uniforme 3 (Cargo)</option>
                     </select>
                     <span style="font-size: 13px; color: #526273;">
-                        ${editing?.tipoUniforme ? `Estándar: ${UNIFORMES[editing.tipoUniforme].nombre}` : 'Seleccione un tipo para ver las prendas requeridas'}
+                        ${editing?.tipoUniforme && UNIFORMES[editing.tipoUniforme] ? `Estándar: ${UNIFORMES[editing.tipoUniforme].nombre}` : 'Seleccione un tipo para ver las prendas requeridas'}
                     </span>
                 </div>
                 
