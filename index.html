@@ -494,8 +494,15 @@
     }
 
     function login() {
-      auth.signInWithEmailAndPassword($("#authEmail").value, $("#authPassword").value)
-        .catch(e => toast(e.message, true));
+        const email = $("#authEmail").value;
+        const password = $("#authPassword").value;
+    
+        // Configurar persistencia SESSION (la sesión se borra al cerrar la pestaña)
+        auth.setPersistence(firebase.auth.Auth.Persistence.SESSION)
+            .then(() => {
+                return auth.signInWithEmailAndPassword(email, password);
+            })
+            .catch(e => toast("Error de inicio de sesión: " + e.message, true));
     }
 
     function register() {
