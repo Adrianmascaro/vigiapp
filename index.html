@@ -1946,11 +1946,11 @@
     // Función de logout mejorada (cierra sesión y vuelve al login)
     function logout() {
         auth.signOut().then(() => {
-            // Ocultar appView, mostrar authView
+            // Borrar preferencia de módulo al cerrar sesión
+            localStorage.removeItem('moduloActivo');
+            // Mostrar login y ocultar app
             document.getElementById('appView').classList.add('hidden');
             document.getElementById('authView').classList.remove('hidden');
-            // Limpiar módulo activo
-            localStorage.removeItem('moduloActivo');
         }).catch(error => {
             toast('Error al cerrar sesión: ' + error.message, true);
         });
