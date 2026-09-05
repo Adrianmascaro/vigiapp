@@ -452,44 +452,28 @@
             auth.onAuthStateChanged(user => {
                 currentUser = user;
                 if (user) {
-                    // Mostrar la aplicación
-                    document.getElementById('authView').classList.add('hidden');
-                    document.getElementById('appView').classList.remove('hidden');
-                    
-                    // Iniciar escucha de objetivos (solo si el usuario está autenticado)
-                    listenObjetivos();
-                    
-                    // Mostrar email del usuario
-                    document.getElementById('userEmail').textContent = user.email;
-                
-                    // Mostrar nombre en el menú (si está disponible)
-                    const nombreMenu = document.getElementById('nombreUsuarioMenu');
-                    if (nombreMenu) {
-                        // Intentar obtener nombre desde Firestore (colección users)
-                        db.collection('users').doc(user.email).get().then(doc => {
-                            if (doc.exists && doc.data().nombre) {
-                                nombreMenu.textContent = doc.data().nombre;
-                            } else {
-                                nombreMenu.textContent = user.email.split('@')[0];
-                            }
-                        }).catch(() => {
-                            nombreMenu.textContent = user.email.split('@')[0];
-                        });
-                    }
+                    // Mostrar app
+                    $("#authView").classList.add("hidden");
+                    $("#appView").classList.remove("hidden");
+                    $("#userEmail").textContent = user.email;
 
-                    // Restaurar módulo activo
-                    restaurarModulo();
-                
-                    // Iniciar escucha de datos (vigiladores)
+                    // ... (código de roles, nombre, etc.) ...
+
+                    // Restaurar módulo (o volver al menú)
+                    restaurarModulo(); // o volverMenu();
+
+                    // Iniciar escucha de datos
                     listen();
+
+                    // ✅ INICIAR DETECTOR DE INACTIVIDAD (nuevo)
+                    initInactivityDetection();
                 } else {
-                    // Usuario no autenticado
-                    document.getElementById('authView').classList.remove('hidden');
-                    document.getElementById('appView').classList.add('hidden');
+                    $("#authView").classList.remove("hidden");
+                    $("#appView").classList.add("hidden");
                 }
             });
         } catch (error) {
-            toast('Error al inicializar Firebase: ' + error.message, true);
+            toast("Configurá Firebase antes de usar la aplicación.", true);
         }
     }
 
@@ -1952,6 +1936,11 @@
 
     // Función de logout mejorada (cierra sesión y vuelve al login)
     function logout() {
+        // Limpiar temporizador de inactividad
+        if (inactivityTimer) {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = null;
+        }
         auth.signOut().then(() => {
             // Borrar preferencia de módulo al cerrar sesión
             localStorage.removeItem('moduloActivo');
@@ -2216,6 +2205,48 @@
             loading(false);
         }
     }
+    // =============================================
+    // SEGURIDAD: CIERRE DE SESIÓN POR INACTIVIDAD
+    // =============================================
+
+    let inactivityTimer;
+
+    function logoutDueToInactivity() {
+        toast("⏰ Sesión cerrada por inactividad (30 minutos).", true);
+        // Cerrar sesión de Firebase
+        auth.signOut().then(() => {
+            // Ocultar app, mostrar login
+            document.getElementById('appView').classList.add('hidden');
+            document.getElementById('authView').classList.remove('hidden');
+            // Limpiar localStorage
+            localStorage.removeItem('moduloActivo');
+        }).catch(error => {
+            toast("Error al cerrar sesión: " + error.message, true);
+        });
+    }
+
+    function resetInactivityTimer() {
+        if (inactivityTimer) {
+            clearTimeout(inactivityTimer);
+        }
+        // 30 minutos = 30 * 60 * 1000 milisegundos
+        inactivityTimer = setTimeout(logoutDueToInactivity, 30 * 60 * 1000);
+    }
+
+    function initInactivityDetection() {
+        resetInactivityTimer();
+
+        // Eventos que indican actividad del usuario
+        const events = [
+            'mousedown', 'mousemove', 'keydown', 'scroll',
+            'touchstart', 'click', 'wheel', 'input', 'change'
+        ];
+
+        events.forEach(event => {
+            document.addEventListener(event, resetInactivityTimer, { passive: true });
+        });
+    }
+    
     init();
   </script>
 
