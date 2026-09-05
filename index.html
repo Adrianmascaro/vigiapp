@@ -265,17 +265,52 @@
         </div>
 
     <!-- ========================================= -->
-    <!-- VISTA OBJETIVOS (nuevo, vacío)           -->
+    <!-- VISTA OBJETIVOS                           -->
     <!-- ========================================= -->
-        <div id="vistaObjetivos" class="vista hidden">
-            <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
-                <button class="secondary" onclick="volverMenu()" style="margin-bottom: 15px;">← Volver al menú</button>
-                <h2 style="color: var(--navy);">🏢 Objetivos / Clientes</h2>
-                <p style="color: #657587;">Próximamente: gestión de ubicaciones, clientes y equipos asignados.</p>
-            </div>
-        </div>
+    <div id="vistaObjetivos" class="vista hidden">
+        <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+            <button class="secondary" onclick="volverMenu()" style="margin-bottom: 15px;">← Volver al menú</button>
+        
+            <section class="container" style="max-width: 100%; margin: 0; padding: 0;">
+                <!-- Barra de herramientas -->
+                <div class="toolbar">
+                    <input id="searchObjetivo" class="search" placeholder="Buscar por nombre, cliente o dirección…" oninput="renderObjetivos()">
+                    <button class="secondary" onclick="toggleFiltrosObjetivos()">Filtros</button>
+                    <button class="primary" onclick="openModalObjetivo()">+ Nuevo Objetivo</button>
+                </div>
 
-    <!-- MODAL HOST (global, fuera de las vistas) -->
+                <!-- Filtros avanzados (opcional) -->
+                <form id="filterFormObjetivos" class="filters card hidden">
+                    <div class="grid">
+                        <div class="field">
+                            <label>Estado</label>
+                            <select name="estado" onchange="renderObjetivos()">
+                                <option value="">Todos</option>
+                                <option value="activo">Activo</option>
+                                <option value="inactivo">Inactivo</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Tipo de servicio</label>
+                            <select name="tipoServicio" onchange="renderObjetivos()">
+                                <option value="">Todos</option>
+                                <option value="vigilancia_fija">Vigilancia fija</option>
+                                <option value="vigilancia_movil">Vigilancia móvil</option>
+                                <option value="cctv">CCTV</option>
+                                <option value="monitoreo">Monitoreo</option>
+                                <option value="integral">Servicio integral</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Lista de objetivos -->
+                <div class="card list" id="listaObjetivos"><div class="empty">Cargando objetivos…</div></div>
+            </section>
+        </div>
+    </div>
+
+        <!-- MODAL HOST (global, fuera de las vistas) -->
         <div id="modalHost"></div>
   </main>
 
@@ -420,7 +455,10 @@
                     // Mostrar la aplicación
                     document.getElementById('authView').classList.add('hidden');
                     document.getElementById('appView').classList.remove('hidden');
-                
+                    
+                    // Iniciar escucha de objetivos (solo si el usuario está autenticado)
+                    listenObjetivos();
+                    
                     // Mostrar email del usuario
                     document.getElementById('userEmail').textContent = user.email;
                 
@@ -1930,6 +1968,188 @@
             }
         }
         volverMenu();
+    }
+    // =============================================
+    // MÓDULO: OBJETIVOS / CLIENTES
+    // =============================================
+
+    let objetivos = [];
+    let editingObjetivo = null;
+
+    // Escuchar cambios en la colección "objetivos"
+    function listenObjetivos() {
+        db.collection("objetivos").orderBy("nombre", "asc").onSnapshot(snapshot => {
+            objetivos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderObjetivos();
+        }, error => {
+            toast("Error al cargar objetivos: " + error.message, true);
+        });
+    }
+
+    // Renderizar la lista de objetivos
+    function renderObjetivos() {
+        const query = document.getElementById("searchObjetivo").value.toLowerCase().trim();
+        const form = document.getElementById("filterFormObjetivos");
+    
+        let list = objetivos;
+    
+        // Búsqueda por texto
+        if (query) {
+            list = list.filter(o =>
+                (o.nombre || "").toLowerCase().includes(query) ||
+                (o.cliente || "").toLowerCase().includes(query) ||
+                (o.direccion || "").toLowerCase().includes(query)
+            );
+        }
+    
+        // Filtros avanzados (si están visibles)
+        if (!form.classList.contains("hidden")) {
+            const data = new FormData(form);
+            const estado = data.get("estado");
+            const tipoServicio = data.get("tipoServicio");
+        
+            list = list.filter(o =>
+                (!estado || o.estado === estado) &&
+                (!tipoServicio || o.tipoServicio === tipoServicio)
+            );
+        }
+    
+        // Ordenar por nombre
+        list.sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+    
+        // Generar HTML
+        const container = document.getElementById("listaObjetivos");
+        if (list.length === 0) {
+            container.innerHTML = '<div class="empty">No se encontraron objetivos.</div>';
+            return;
+        }
+    
+        container.innerHTML = list.map(o => `
+            <div class="row">
+                <div class="avatar">${o.nombre ? o.nombre.charAt(0).toUpperCase() : '?'}</div>
+                <div>
+                    <strong>${esc(o.nombre || "Sin nombre")}</strong>
+                    <div class="muted">${esc(o.direccion || "Sin dirección")} · ${o.estado === 'activo' ? '🟢 Activo' : '🔴 Inactivo'}</div>
+                    <div class="muted" style="font-size: 11px; color: #8a9baa;">Cliente: ${esc(o.cliente || "—")}</div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="secondary edit" onclick="openModalObjetivo('${o.id}')">Editar</button>
+                    <button class="secondary danger" onclick="eliminarObjetivo('${o.id}')" style="border-color:#c53d3d; color:#c53d3d;">Eliminar</button>
+                </div>
+            </div>
+        `).join("");
+    }
+
+    // Mostrar/ocultar filtros avanzados
+    function toggleFiltrosObjetivos() {
+        document.getElementById("filterFormObjetivos").classList.toggle("hidden");
+        renderObjetivos();
+    }
+
+    // Abrir modal para crear o editar objetivo
+    function openModalObjetivo(id = null) {
+        if (id) {
+            editingObjetivo = objetivos.find(o => o.id === id);
+            if (!editingObjetivo) {
+                toast("Objetivo no encontrado.", true);
+                return;
+            }
+        } else {
+            editingObjetivo = {};
+        }
+    
+        const modalHTML = `
+            <div class="modal-bg">
+                <div class="modal" style="max-width: 600px;">
+                    <div class="modal-head">
+                        <strong>${id ? "Editar" : "Nuevo"} Objetivo</strong>
+                        <span class="spacer"></span>
+                        <button class="secondary" onclick="closeModalObjetivo()">×</button>
+                    </div>
+                    <form id="formObjetivo" style="padding: 20px;">
+                        <div class="grid" style="grid-template-columns: 1fr 1fr;">
+                            ${field("Nombre *", "nombre")}
+                            ${field("Cliente", "cliente")}
+                            ${field("Dirección", "direccion", "text", "wide")}
+                            ${field("Teléfono", "telefono")}
+                            ${field("Email", "email", "email")}
+                            ${select("Tipo de servicio", "tipoServicio", ["vigilancia_fija", "vigilancia_movil", "cctv", "monitoreo", "integral"])}
+                            ${select("Estado", "estado", ["activo", "inactivo"])}
+                            ${field("Observaciones", "observaciones", "textarea", "full")}
+                        </div>
+                        <div class="modal-foot" style="padding: 16px 0 0 0;">
+                            <button type="button" class="secondary" onclick="closeModalObjetivo()">Cancelar</button>
+                            <button type="submit" class="primary">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+    
+        document.getElementById("modalHost").innerHTML = modalHTML;
+        document.getElementById("formObjetivo").onsubmit = guardarObjetivo;
+    }
+
+    // Cerrar modal de objetivo
+    function closeModalObjetivo() {
+        document.getElementById("modalHost").innerHTML = "";
+        editingObjetivo = null;
+    }
+
+    // Guardar objetivo (crear o actualizar)
+    async function guardarObjetivo(event) {
+        event.preventDefault();
+    
+        const data = Object.fromEntries(new FormData(event.target));
+    
+        // Validar campos obligatorios
+        if (!data.nombre || data.nombre.trim() === "") {
+            toast("El nombre es obligatorio.", true);
+            return;
+        }
+    
+        // Limpiar espacios
+        data.nombre = data.nombre.trim();
+        if (data.cliente) data.cliente = data.cliente.trim();
+        if (data.direccion) data.direccion = data.direccion.trim();
+        if (data.observaciones) data.observaciones = data.observaciones.trim();
+    
+        data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    
+        try {
+            loading(true);
+        
+            if (editingObjetivo && editingObjetivo.id) {
+                await db.collection("objetivos").doc(editingObjetivo.id).set(data, { merge: true });
+                toast("Objetivo actualizado correctamente.");
+            } else {
+                data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                await db.collection("objetivos").add(data);
+                toast("Objetivo creado correctamente.");
+            }
+        
+            closeModalObjetivo();
+            // No es necesario llamar a render porque el listener de Firestore lo actualizará
+        } catch (error) {
+            toast("Error al guardar: " + error.message, true);
+        } finally {
+            loading(false);
+        }
+    }
+
+    // Eliminar objetivo (con confirmación)
+    async function eliminarObjetivo(id) {
+        if (!confirm("¿Eliminar este objetivo? Esta acción no se puede deshacer.")) return;
+    
+        try {
+            loading(true);
+            await db.collection("objetivos").doc(id).delete();
+            toast("Objetivo eliminado.");
+        } catch (error) {
+            toast("Error al eliminar: " + error.message, true);
+        } finally {
+            loading(false);
+        }
     }
     init();
   </script>
