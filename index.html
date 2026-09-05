@@ -247,7 +247,7 @@
         <div id="vistaLogistica" class="vista hidden">
             <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
                 <button class="secondary" onclick="volverMenu()" style="margin-bottom: 15px;">← Volver al menú</button>
-                <h2 style="color: var(--navy);">👕 Logística de Uniformes</h2>
+                <h2 style="color: var(--navy);">👔 Logística de Uniformes</h2>
                 <p style="color: #657587;">Próximamente: gestión de stock, compras, incidencias y ciclo de vida de prendas.</p>
             <!-- Aquí irá todo el contenido del módulo de Logística -->
             </div>
@@ -1024,7 +1024,7 @@
             let iconoRopa = '';
             if (tienePendientes) {
                 const detalle = pendientes.map(p => `${p.tipo} x${p.faltante}`).join(', ');
-                iconoRopa = `<span style="margin-left:5px; color:#856404; cursor:help;" title="Faltan prendas: ${detalle}">🧥</span>`;
+                iconoRopa = `<span style="margin-left:5px; color:#856404; cursor:help;" title="Faltan prendas: ${detalle}">👔</span>`;
             }
         
         // █████████████████████████████████████████████
@@ -1151,7 +1151,7 @@
         if (pendientes.length > 0) {
             htmlPendientes = `
                 <div style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffeeba; display: flex; align-items: flex-start; gap: 10px;">
-                    <span style="font-size: 24px;">🧥</span>
+                    <span style="font-size: 24px;">👔</span>
                     <div>
                         <strong>Prendas pendientes de entrega:</strong>
                         <ul style="margin:5px 0; padding-left:20px;">
