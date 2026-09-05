@@ -181,8 +181,8 @@
                 <!-- Módulo: Objetivos -->
                     <div class="modulo-card" onclick="cambiarModulo('objetivos')" data-modulo="objetivos">
                         <span>🏢</span>
-                        <h3>Objetivos / Clientes</h3>
-                        <p>Gestión de ubicaciones, clientes y equipos asignados.</p>
+                        <h3>Objetivos</h3>
+                        <p>Gestión de objetivos.</p>
                     </div>
                 </div>
             </div>
@@ -274,7 +274,7 @@
             <section class="container" style="max-width: 100%; margin: 0; padding: 0;">
                 <!-- Barra de herramientas -->
                 <div class="toolbar">
-                    <input id="searchObjetivo" class="search" placeholder="Buscar por nombre, cliente o dirección…" oninput="renderObjetivos()">
+                    <input id="searchObjetivo" class="search" placeholder="Buscar por nombre, administración o dirección…" oninput="renderObjetivos()">
                     <button class="secondary" onclick="toggleFiltrosObjetivos()">Filtros</button>
                     <button class="primary" onclick="openModalObjetivo()">+ Nuevo Objetivo</button>
                 </div>
@@ -296,7 +296,7 @@
                                 <option value="">Todos</option>
                                 <option value="vigilancia_fija">Vigilancia fija</option>
                                 <option value="vigilancia_movil">Vigilancia móvil</option>
-                                <option value="cctv">CCTV</option>
+                                <option value="CCTV">CCTV</option>
                                 <option value="monitoreo">Monitoreo</option>
                                 <option value="integral">Servicio integral</option>
                             </select>
@@ -1970,7 +1970,7 @@
         volverMenu();
     }
     // =============================================
-    // MÓDULO: OBJETIVOS / CLIENTES
+    // MÓDULO: OBJETIVOS
     // =============================================
 
     let objetivos = [];
@@ -1997,7 +1997,7 @@
         if (query) {
             list = list.filter(o =>
                 (o.nombre || "").toLowerCase().includes(query) ||
-                (o.cliente || "").toLowerCase().includes(query) ||
+                (o.administracion || "").toLowerCase().includes(query) ||
                 (o.direccion || "").toLowerCase().includes(query)
             );
         }
@@ -2030,7 +2030,7 @@
                 <div>
                     <strong>${esc(o.nombre || "Sin nombre")}</strong>
                     <div class="muted">${esc(o.direccion || "Sin dirección")} · ${o.estado === 'activo' ? '🟢 Activo' : '🔴 Inactivo'}</div>
-                    <div class="muted" style="font-size: 11px; color: #8a9baa;">Cliente: ${esc(o.cliente || "—")}</div>
+                    <div class="muted" style="font-size: 11px; color: #8a9baa;">Administración: ${esc(o.administracion || "—")}</div>
                 </div>
                 <div style="display:flex; gap:8px; align-items:center;">
                     <button class="secondary edit" onclick="openModalObjetivo('${o.id}')">Editar</button>
@@ -2046,7 +2046,6 @@
         renderObjetivos();
     }
 
-    // Abrir modal para crear o editar objetivo
     function openModalObjetivo(id = null) {
         if (id) {
             editingObjetivo = objetivos.find(o => o.id === id);
@@ -2058,6 +2057,20 @@
             editingObjetivo = {};
         }
     
+        // Obtener valores o vacío
+        const nombre = editingObjetivo.nombre || '';
+        const administracion = editingObjetivo.administracion || '';
+        const direccion = editingObjetivo.direccion || '';
+        const telefono = editingObjetivo.telefono || '';
+        const email = editingObjetivo.email || '';
+        const tipoServicio = editingObjetivo.tipoServicio || '';
+        const estado = editingObjetivo.estado || 'activo';
+        const observaciones = editingObjetivo.observaciones || '';
+    
+        // Opciones para selects
+        const tiposServicio = ["vigilancia_fija", "vigilancia_movil", "cctv", "monitoreo", "integral"];
+        const estados = ["activo", "inactivo"];
+    
         const modalHTML = `
             <div class="modal-bg">
                 <div class="modal" style="max-width: 600px;">
@@ -2068,15 +2081,60 @@
                     </div>
                     <form id="formObjetivo" style="padding: 20px;">
                         <div class="grid" style="grid-template-columns: 1fr 1fr;">
-                            ${field("Nombre *", "nombre")}
-                            ${field("Cliente", "cliente")}
-                            ${field("Dirección", "direccion", "text", "wide")}
-                            ${field("Teléfono", "telefono")}
-                            ${field("Email", "email", "email")}
-                            ${select("Tipo de servicio", "tipoServicio", ["vigilancia_fija", "vigilancia_movil", "cctv", "monitoreo", "integral"])}
-                            ${select("Estado", "estado", ["activo", "inactivo"])}
-                            ${field("Observaciones", "observaciones", "textarea", "full")}
+                            <!-- Nombre (obligatorio) -->
+                            <div class="field wide">
+                                <label>Nombre *</label>
+                                <input type="text" name="nombre" value="${esc(nombre)}" required>
+                            </div>
+                        
+                            <!-- Administración -->
+                            <div class="field">
+                                <label>Administración</label>
+                                <input type="text" name="administracion" value="${esc(administracion)}">
+                            </div>
+                        
+                            <!-- Dirección -->
+                            <div class="field wide">
+                                <label>Dirección</label>
+                                <input type="text" name="direccion" value="${esc(direccion)}">
+                            </div>
+                        
+                            <!-- Teléfono -->
+                            <div class="field">
+                                <label>Teléfono</label>
+                                <input type="text" name="telefono" value="${esc(telefono)}">
+                            </div>
+                        
+                            <!-- Email -->
+                            <div class="field">
+                                <label>Email</label>
+                                <input type="email" name="email" value="${esc(email)}">
+                            </div>
+                        
+                            <!-- Tipo de servicio -->
+                            <div class="field">
+                                <label>Tipo de servicio</label>
+                                <select name="tipoServicio">
+                                    <option value="">Seleccionar</option>
+                                    ${tiposServicio.map(t => `<option value="${t}" ${t === tipoServicio ? 'selected' : ''}>${t.replace('_', ' ').toUpperCase()}</option>`).join('')}
+                                </select>
+                            </div>
+                        
+                            <!-- Estado -->
+                            <div class="field">
+                                <label>Estado</label>
+                                <select name="estado">
+                                    ${estados.map(e => `<option value="${e}" ${e === estado ? 'selected' : ''}>${e.charAt(0).toUpperCase() + e.slice(1)}</option>`).join('')}
+                                </select>
+                            </div>
+                        
+                            <!-- Observaciones -->
+                            <div class="field full">
+                                <label>Observaciones</label>
+                                <textarea name="observaciones" rows="3">${esc(observaciones)}</textarea>
+                            </div>
                         </div>
+                    
                         <div class="modal-foot" style="padding: 16px 0 0 0;">
                             <button type="button" class="secondary" onclick="closeModalObjetivo()">Cancelar</button>
                             <button type="submit" class="primary">Guardar</button>
@@ -2110,7 +2168,7 @@
     
         // Limpiar espacios
         data.nombre = data.nombre.trim();
-        if (data.cliente) data.cliente = data.cliente.trim();
+        if (data.administracion) data.administracion = data.administracion.trim();
         if (data.direccion) data.direccion = data.direccion.trim();
         if (data.observaciones) data.observaciones = data.observaciones.trim();
     
