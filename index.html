@@ -61,7 +61,65 @@
     .spin{width:17px;height:17px;border:2px solid #fff7;border-top-color:#fff;border-radius:50%;display:inline-block;vertical-align:middle;animation:spin .8s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
     @media(max-width:650px){.grid{grid-template-columns:1fr 1fr}.wide{grid-column:span 2}.array-form{grid-template-columns:1fr 1fr}.row{grid-template-columns:45px 1fr auto}.row .edit{display:none}.topbar{padding:12px 16px}.modal-body{padding:16px}.modal-head{padding:15px 16px}.modal-foot{padding:14px 16px}}
-    
+    /* ========================================= */
+    /* ESTILOS PARA VISTAS Y MENÚ MODULAR       */
+    /* ========================================= */
+
+    .vista {
+        display: none;
+        padding: 20px 0;
+    }
+    .vista.active {
+        display: block;
+    }
+    .hidden {
+        display: none !important;
+    }
+
+    .modulos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 24px;
+        margin-top: 20px;
+    }
+
+    .modulo-card {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 30px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        box-shadow: 0 2px 8px rgba(16, 42, 67, 0.04);
+    }
+    .modulo-card:hover {
+        box-shadow: 0 8px 24px rgba(16, 42, 67, 0.12);
+        transform: translateY(-6px);
+        border-color: var(--blue);
+    }
+    .modulo-card span {
+        font-size: 48px;
+        display: block;
+        margin-bottom: 12px;
+    }
+    .modulo-card h3 {
+        margin: 0 0 8px 0;
+        color: var(--navy);
+        font-size: 18px;
+    }
+    .modulo-card p {
+        margin: 0;
+        font-size: 13px;
+        color: #657587;
+        line-height: 1.5;
+    }
+
+/* Ajustes para el contenido dentro de las vistas */
+    .vista .container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
   </style>
 </head>
 <body>
@@ -82,64 +140,143 @@
   </main>
 
   <main id="appView" class="hidden">
-    <header class="topbar">
-      <div class="brand">CENTINELA<small>INACO SEGURIDAD</small></div>
-      <span class="spacer"></span>
-      <span id="userEmail" class="muted" style="color:#d6e8fa"></span>
-      <button class="secondary" onclick="auth.signOut()">Salir</button>
-    </header>
+      <!-- TOPBAR (siempre visible) -->
+      <header class="topbar">
+            <div class="brand">CENTINELA<small>INACO SEGURIDAD</small></div>
+            <span class="spacer"></span>
+            <span id="userEmail" class="muted" style="color:#d6e8fa"></span>
+            <button class="secondary" onclick="logout()">Salir</button>
+        </header>
 
-    <section class="container">
-      <div class="toolbar">
-        <input id="search" class="search" placeholder="Buscar por nombre, apellido o DNI…" oninput="render()">
-        <select id="filtroEstado" onchange="render()" style="padding:10px 13px; border:1px solid var(--line); border-radius:8px; background:white;">
-            <option value="todos">Todos</option>
-            <option value="ALTA">🟢 Activos</option>
-            <option value="BAJA_PROCESO">🟡 En proceso de baja</option>
-            <option value="BAJA_DEFINITIVA">🔴 Bajas definitivas</option>
-        </select>
-        <button class="secondary" onclick="toggleFilters()">Filtros avanzados</button>
-        <button class="secondary" onclick="exportJSON()">Exportar JSON</button>
-        <label class="secondary" style="padding:10px 14px;font-weight:650;cursor:pointer">
-          Importar JSON
-          <input type="file" accept=".json" class="hidden" onchange="importJSON(event)">
-        </label>
+    <!-- ========================================= -->
+    <!-- VISTA MENÚ (página de inicio)            -->
+    <!-- ========================================= -->
+        <div id="vistaMenu" class="vista active">
+            <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
+                <h2 style="color: var(--navy);">Bienvenido, <span id="nombreUsuarioMenu">Usuario</span></h2>
+                <p style="color: #657587; margin-bottom: 30px;">Selecciona un módulo para comenzar a trabajar.</p>
+            
+                <div class="modulos-grid">
+                <!-- Módulo: Vigiladores -->
+                    <div class="modulo-card" onclick="cambiarModulo('vigiladores')" data-modulo="vigiladores">
+                        <span>👤</span>
+                        <h3>Gestión de Vigiladores</h3>
+                        <p>CRUD completo, habilitaciones, RRHH, ropa, disciplina y estado judicial.</p>
+                    </div>
 
-        <span id="adminButtons" class="hidden">
-          <label class="secondary" style="padding:10px 14px;font-weight:650;cursor:pointer">
-            Importar altas Excel
-            <input type="file" accept=".xlsx,.xls" class="hidden" onchange="excelAltas(event)">
-          </label>
-          <label class="secondary" style="padding:10px 14px;font-weight:650;cursor:pointer">
-            Importar suspensiones
-            <input type="file" accept=".xlsx,.xls" class="hidden" onchange="excelSuspensiones(event)">
-          </label>
-        </span>
+                <!-- Módulo: Logística -->
+                    <div class="modulo-card" onclick="cambiarModulo('logistica')" data-modulo="logistica">
+                        <span>👕</span>
+                        <h3>Logística de Uniformes</h3>
+                        <p>Stock, compras, incidencias, devoluciones y ciclo de vida de prendas.</p>
+                    </div>
 
-        <button class="primary" onclick="openModal()">+ Nuevo Vigilador</button>
-      </div>
+                <!-- Módulo: Tecnología -->
+                    <div class="modulo-card" onclick="cambiarModulo('tecnologia')" data-modulo="tecnologia">
+                        <span>📡</span>
+                        <h3>Tecnología</h3>
+                        <p>Gestión de equipos HT, celulares, CCTV y su asignación.</p>
+                    </div>
 
-      <form id="filterForm" class="filters card hidden">
-        <div class="grid">
-          <div class="field">
-            <label>Habilitación</label>
-            <select name="habTipo" onchange="render()">
-              <option value="">Todas</option><option>Provincia</option><option>CABA</option>
-            </select>
-          </div>
-          <div class="field"><label>Vence antes de</label><input type="date" name="venceAntes" onchange="render()"></div>
-          <div class="field">
-            <label>Categoría</label>
-            <select name="categoria" onchange="render()">
-              <option value="">Todas</option><option>Vigilador</option><option>Vigilador Senior</option><option>Supervisor</option><option>Jefe de Seguridad</option>
-            </select>
-          </div>
-          <div class="field"><label>Domicilio</label><input name="domicilio" oninput="render()"></div>
+                <!-- Módulo: Objetivos -->
+                    <div class="modulo-card" onclick="cambiarModulo('objetivos')" data-modulo="objetivos">
+                        <span>🏢</span>
+                        <h3>Objetivos / Clientes</h3>
+                        <p>Gestión de ubicaciones, clientes y equipos asignados.</p>
+                    </div>
+                </div>
+            </div>
         </div>
-      </form>
 
-      <div class="card list" id="list"><div class="empty">Cargando vigiladores…</div></div>
-    </section>
+    <!-- ========================================= -->
+    <!-- VISTA VIGILADORES (contenido actual)      -->
+    <!-- ========================================= -->
+        <div id="vistaVigiladores" class="vista hidden">
+            <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+                <button class="secondary" onclick="volverMenu()" style="margin-bottom: 15px;">← Volver al menú</button>
+            
+            <!-- TODO EL CONTENIDO ORIGINAL DE section.container -->
+                <section class="container" style="max-width: 100%; margin: 0; padding: 0;">
+                <!-- Barra de herramientas -->
+                    <div class="toolbar">
+                        <input id="search" class="search" placeholder="Buscar por nombre, apellido o DNI…" oninput="render()">
+                        <select id="filtroEstado" onchange="render()" style="padding:10px 13px; border:1px solid var(--line); border-radius:8px; background:white;">
+                            <option value="todos">Todos</option>
+                            <option value="ALTA">🟢 Activos</option>
+                            <option value="BAJA_PROCESO">🟡 En proceso de baja</option>
+                            <option value="BAJA_DEFINITIVA">🔴 Bajas definitivas</option>
+                        </select>
+                        <button class="secondary" onclick="toggleFilters()">Filtros avanzados</button>
+                        <button class="secondary" onclick="exportJSON()">Exportar JSON</button>
+                        <label class="secondary" style="padding:10px 14px;font-weight:650;cursor:pointer">
+                        Importar JSON
+                            <input type="file" accept=".json" class="hidden" onchange="importJSON(event)">
+                        </label>
+                        <button class="primary" onclick="openModal()">+ Nuevo Vigilador</button>
+                    </div>
+
+                <!-- Filtros avanzados -->
+                    <form id="filterForm" class="filters card hidden">
+                        <div class="grid">
+                            <div class="field">
+                                <label>Habilitación</label>
+                                <select name="habTipo" onchange="render()">
+                                    <option value="">Todas</option><option>Provincia</option><option>CABA</option>
+                                </select>
+                            </div>
+                            <div class="field"><label>Vence antes de</label><input type="date" name="venceAntes" onchange="render()"></div>
+                            <div class="field">
+                                <label>Categoría</label>
+                                <select name="categoria" onchange="render()">
+                                    <option value="">Todas</option><option>Vigilador</option><option>Vigilador Senior</option><option>Supervisor</option><option>Jefe de Seguridad</option>
+                                </select>
+                            </div>
+                            <div class="field"><label>Domicilio</label><input name="domicilio" oninput="render()"></div>
+                        </div>
+                    </form>
+
+                <!-- Lista de vigiladores -->
+                    <div class="card list" id="list"><div class="empty">Cargando vigiladores…</div></div>
+                </section>
+            </div>
+        </div>
+
+    <!-- ========================================= -->
+    <!-- VISTA LOGÍSTICA (nuevo, vacío)           -->
+    <!-- ========================================= -->
+        <div id="vistaLogistica" class="vista hidden">
+            <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+                <button class="secondary" onclick="volverMenu()" style="margin-bottom: 15px;">← Volver al menú</button>
+                <h2 style="color: var(--navy);">👕 Logística de Uniformes</h2>
+                <p style="color: #657587;">Próximamente: gestión de stock, compras, incidencias y ciclo de vida de prendas.</p>
+            <!-- Aquí irá todo el contenido del módulo de Logística -->
+            </div>
+        </div>
+
+    <!-- ========================================= -->
+    <!-- VISTA TECNOLOGÍA (nuevo, vacío)          -->
+    <!-- ========================================= -->
+        <div id="vistaTecnologia" class="vista hidden">
+            <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+                <button class="secondary" onclick="volverMenu()" style="margin-bottom: 15px;">← Volver al menú</button>
+                <h2 style="color: var(--navy);">📡 Tecnología</h2>
+                <p style="color: #657587;">Próximamente: gestión de equipos HT, celulares, CCTV y asignaciones.</p>
+            </div>
+        </div>
+
+    <!-- ========================================= -->
+    <!-- VISTA OBJETIVOS (nuevo, vacío)           -->
+    <!-- ========================================= -->
+        <div id="vistaObjetivos" class="vista hidden">
+            <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+                <button class="secondary" onclick="volverMenu()" style="margin-bottom: 15px;">← Volver al menú</button>
+                <h2 style="color: var(--navy);">🏢 Objetivos / Clientes</h2>
+                <p style="color: #657587;">Próximamente: gestión de ubicaciones, clientes y equipos asignados.</p>
+            </div>
+        </div>
+
+    <!-- MODAL HOST (global, fuera de las vistas) -->
+        <div id="modalHost"></div>
   </main>
 
   <div id="modalHost"></div>
@@ -272,27 +409,50 @@
     }
 
     function init() {
-      try {
-        firebase.initializeApp(firebaseConfig);
-        auth = firebase.auth();
-        db = firebase.firestore();
+        try {
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
 
-        auth.onAuthStateChanged(user => {
-          currentUser = user;
-          if (user) {
-            $("#authView").classList.add("hidden");
-            $("#appView").classList.remove("hidden");
-            $("#userEmail").textContent = user.email;
-            $("#adminButtons").classList.toggle("hidden", !ADMIN_EMAILS.includes(user.email));
-            listen();
-          } else {
-            $("#authView").classList.remove("hidden");
-            $("#appView").classList.add("hidden");
-          }
-        });
-      } catch (error) {
-        toast("Configurá Firebase antes de usar la aplicación.", true);
-      }
+            auth.onAuthStateChanged(user => {
+                currentUser = user;
+                if (user) {
+                    // Mostrar la aplicación
+                    document.getElementById('authView').classList.add('hidden');
+                    document.getElementById('appView').classList.remove('hidden');
+                
+                    // Mostrar email del usuario
+                    document.getElementById('userEmail').textContent = user.email;
+                
+                    // Mostrar nombre en el menú (si está disponible)
+                    const nombreMenu = document.getElementById('nombreUsuarioMenu');
+                    if (nombreMenu) {
+                        // Intentar obtener nombre desde Firestore (colección users)
+                        db.collection('users').doc(user.email).get().then(doc => {
+                            if (doc.exists && doc.data().nombre) {
+                                nombreMenu.textContent = doc.data().nombre;
+                            } else {
+                                nombreMenu.textContent = user.email.split('@')[0];
+                            }
+                        }).catch(() => {
+                            nombreMenu.textContent = user.email.split('@')[0];
+                        });
+                    }
+
+                    // Restaurar módulo activo
+                    restaurarModulo();
+                
+                    // Iniciar escucha de datos (vigiladores)
+                    listen();
+                } else {
+                    // Usuario no autenticado
+                    document.getElementById('authView').classList.remove('hidden');
+                    document.getElementById('appView').classList.add('hidden');
+                }
+            });
+        } catch (error) {
+            toast('Error al inicializar Firebase: ' + error.message, true);
+        }
     }
 
     function login() {
@@ -1710,7 +1870,67 @@
 
       $("#confirmImport").onclick = confirm;
     }
+    // =============================================
+    // NAVEGACIÓN ENTRE MÓDULOS
+    // =============================================
 
+    let moduloActivo = null;
+
+    function cambiarModulo(modulo) {
+        // Ocultar todas las vistas
+        document.querySelectorAll('.vista').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.vista').forEach(el => el.classList.add('hidden'));
+    
+        // Mostrar la vista seleccionada
+        const nombreVista = 'vista' + modulo.charAt(0).toUpperCase() + modulo.slice(1);
+        const vista = document.getElementById(nombreVista);
+        if (vista) {
+            vista.classList.remove('hidden');
+            vista.classList.add('active');
+        }
+    
+        // Guardar en localStorage para restaurar al recargar
+        localStorage.setItem('moduloActivo', modulo);
+        moduloActivo = modulo;
+    }
+
+    function volverMenu() {
+        document.querySelectorAll('.vista').forEach(el => {
+            el.classList.remove('active');
+            el.classList.add('hidden');
+        });
+        document.getElementById('vistaMenu').classList.remove('hidden');
+        document.getElementById('vistaMenu').classList.add('active');
+        localStorage.setItem('moduloActivo', 'menu');
+        moduloActivo = 'menu';
+    }
+
+    // Función de logout mejorada (cierra sesión y vuelve al login)
+    function logout() {
+        auth.signOut().then(() => {
+            // Ocultar appView, mostrar authView
+            document.getElementById('appView').classList.add('hidden');
+            document.getElementById('authView').classList.remove('hidden');
+            // Limpiar módulo activo
+            localStorage.removeItem('moduloActivo');
+        }).catch(error => {
+            toast('Error al cerrar sesión: ' + error.message, true);
+        });
+    }
+
+    // Restaurar módulo al cargar la página (se llama desde init)
+    function restaurarModulo() {
+        const modulo = localStorage.getItem('moduloActivo');
+        if (modulo && modulo !== 'menu' && modulo !== 'null') {
+            // Verificar que el módulo exista (por si cambió la estructura)
+            const vista = document.getElementById('vista' + modulo.charAt(0).toUpperCase() + modulo.slice(1));
+            if (vista) {
+                cambiarModulo(modulo);
+                return;
+            }
+        }
+        volverMenu();
+    }
     init();
   </script>
 
