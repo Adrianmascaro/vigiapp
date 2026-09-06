@@ -317,6 +317,53 @@
   <div id="modalHost"></div>
 
   <script>
+    // =============================================
+    // VALIDACIONES DE FORMATO
+    // =============================================
+
+    function validarFormato(campo, valor) {
+        switch (campo) {
+            case 'dni':
+                // 8 dígitos exactos
+                return /^\d{8}$/.test(valor);
+            case 'cuil':
+                // 11 dígitos (sin guiones)
+                return /^\d{11}$/.test(valor);
+            case 'telefono':
+                // 10 dígitos (código de área + número)
+                return /^\d{10}$/.test(valor);
+            case 'email':
+                // Formato básico: algo@algo.dominio
+                return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor);
+            case 'cbu':
+                // 22 dígitos (opcional, solo valida si tiene valor)
+                if (valor === '') return true;
+                return /^\d{22}$/.test(valor);
+            case 'fechaNacimiento':
+            case 'fechaIngreso':
+                // Fecha no futura
+                if (!valor) return true; // puede ser vacío (no obligatorio)
+                const fecha = new Date(valor);
+                const hoy = new Date();
+                hoy.setHours(0,0,0,0);
+                return fecha <= hoy;
+            default:
+                return true;
+        }
+    }
+
+    function mensajeErrorFormato(campo) {
+        const mensajes = {
+            dni: 'El DNI debe tener exactamente 8 dígitos (sin puntos ni espacios).',
+            cuil: 'El CUIL debe tener exactamente 11 dígitos (sin guiones).',
+            telefono: 'El teléfono debe tener 10 dígitos (ej. 1123456789).',
+            email: 'Ingrese un email válido (ej. usuario@dominio.com).',
+            cbu: 'El CBU debe tener 22 dígitos (opcional).',
+            fechaNacimiento: 'La fecha de nacimiento no puede ser futura.',
+            fechaIngreso: 'La fecha de ingreso no puede ser futura.'
+        };
+        return mensajes[campo] || 'Formato inválido.';
+    }
     /*
       CONFIGURACIÓN FIREBASE:
       Reemplazá todos los valores con los datos de Firebase Console > Configuración del proyecto.
@@ -1504,6 +1551,79 @@
       event.preventDefault();
 
       const data = Object.fromEntries(new FormData(event.target));
+      const dni = data.dni?.trim();
+      const cuil = data.cuil?.trim();
+      const telefono = data.telefono?.trim();
+      const email = data.email?.trim();
+      const fechaNacimiento = data.fechaNacimiento;
+      const fechaIngreso = data.fechaIngreso;
+      const cbu = data.cbu?.trim();
+
+      // █████████████████████████████████████████████████████
+      // VALIDACIONES DE FORMATO
+      // █████████████████████████████████████████████████████
+
+      // DNI (obligatorio)
+      if (!dni || !validarFormato('dni', dni)) {
+          toast(mensajeErrorFormato('dni'), true);
+          return;
+      }
+
+      // CUIL (opcional pero si se ingresa, validar formato)
+      if (cuil && !validarFormato('cuil', cuil)) {
+          toast(mensajeErrorFormato('cuil'), true);
+          return;
+      }
+
+      // Teléfono (opcional pero si se ingresa, validar formato)
+      if (telefono && !validarFormato('telefono', telefono)) {
+          toast(mensajeErrorFormato('telefono'), true);
+          return;
+      }
+
+      // Email (opcional pero si se ingresa, validar formato)
+      if (email && !validarFormato('email', email)) {
+          toast(mensajeErrorFormato('email'), true);
+          return;
+      }
+
+      // CBU (opcional)
+      if (cbu && !validarFormato('cbu', cbu)) {
+          toast(mensajeErrorFormato('cbu'), true);
+          return;
+      }
+
+      // Fecha de nacimiento (opcional, no futura)
+      if (fechaNacimiento && !validarFormato('fechaNacimiento', fechaNacimiento)) {
+          toast(mensajeErrorFormato('fechaNacimiento'), true);
+          return;
+      }
+
+      // Fecha de ingreso (opcional, no futura)
+      if (fechaIngreso && !validarFormato('fechaIngreso', fechaIngreso)) {
+          toast(mensajeErrorFormato('fechaIngreso'), true);
+          return;
+      }
+
+      // █████████████████████████████████████████████████████
+      // VALIDACIÓN: Legajo único (opcional)
+      // █████████████████████████████████████████████████████
+      if (legajo) {
+          const legajoQuery = await db.collection("vigiladores")
+              .where("legajo", "==", legajo)
+              .get();
+        
+          if (!legajoQuery.empty) {
+              const existingDoc = legajoQuery.docs[0];
+              if (editing.id && existingDoc.id !== editing.id) {
+                  toast(`❌ Ya existe un vigilador con el Legajo ${legajo}.`, true);
+                  return;
+              } else if (!editing.id) {
+                  toast(`❌ Ya existe un vigilador con el Legajo ${legajo}.`, true);
+                  return;
+              }
+          }
+      }
       data.foto = editing.foto || "";
       data.entregas = arrays.entregas;
       data.evaluaciones = arrays.evaluaciones;
@@ -2155,7 +2275,35 @@
         event.preventDefault();
     
         const data = Object.fromEntries(new FormData(event.target));
-    
+        const nombre = data.nombre?.trim();
+        const email = data.email?.trim();
+
+        // Email opcional, pero si se ingresa, validar formato
+        if (email && !validarFormato('email', email)) {
+            toast(mensajeErrorFormato('email'), true);
+            return;
+        }
+
+        // █████████████████████████████████████████████████████
+        // VALIDACIÓN: Nombre único
+        // █████████████████████████████████████████████████████
+        if (nombre) {
+            const nombreQuery = await db.collection("objetivos")
+                .where("nombre", "==", nombre)
+                .get();
+        
+            if (!nombreQuery.empty) {
+                const existingDoc = nombreQuery.docs[0];
+                if (editingObjetivo.id && existingDoc.id !== editingObjetivo.id) {
+                    toast(`❌ Ya existe un objetivo con el nombre "${nombre}".`, true);
+                    return;
+                } else if (!editingObjetivo.id) {
+                    toast(`❌ Ya existe un objetivo con el nombre "${nombre}".`, true);
+                    return;
+                }
+            }
+        }
+      
         // Validar campos obligatorios
         if (!data.nombre || data.nombre.trim() === "") {
             toast("El nombre es obligatorio.", true);
