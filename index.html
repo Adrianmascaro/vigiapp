@@ -1155,7 +1155,7 @@
         </div>`;
 
       renderPanes();
-      $("#vigForm").onsubmit = saveVigilador;
+      $("#vigForm").onsubmit = or;
     }
 
     function renderPanes() {
@@ -1548,110 +1548,150 @@
     }
 
     async function saveVigilador(event) {
-      event.preventDefault();
+        event.preventDefault();
 
-      const data = Object.fromEntries(new FormData(event.target));
-      const dni = data.dni?.trim();
-      const cuil = data.cuil?.trim();
-      const telefono = data.telefono?.trim();
-      const email = data.email?.trim();
-      const fechaNacimiento = data.fechaNacimiento;
-      const fechaIngreso = data.fechaIngreso;
-      const cbu = data.cbu?.trim();
+        // Obtener datos del formulario
+        const data = Object.fromEntries(new FormData(event.target));
+    
+        // Extraer campos con trim (para validaciones)
+        const dni = data.dni?.trim();
+        const legajo = data.legajo?.trim();        // ← AGREGAR ESTA LÍNEA
+        const cuil = data.cuil?.trim();
+        const telefono = data.telefono?.trim();
+        const email = data.email?.trim();
+        const fechaNacimiento = data.fechaNacimiento;
+        const fechaIngreso = data.fechaIngreso;
+        const cbu = data.cbu?.trim();
 
-      // █████████████████████████████████████████████████████
-      // VALIDACIONES DE FORMATO
-      // █████████████████████████████████████████████████████
+        // █████████████████████████████████████████████████████
+        // VALIDACIONES DE FORMATO
+        // █████████████████████████████████████████████████████
 
-      // DNI (obligatorio)
-      if (!dni || !validarFormato('dni', dni)) {
-          toast(mensajeErrorFormato('dni'), true);
-          return;
-      }
-
-      // CUIL (opcional pero si se ingresa, validar formato)
-      if (cuil && !validarFormato('cuil', cuil)) {
-          toast(mensajeErrorFormato('cuil'), true);
-          return;
-      }
-
-      // Teléfono (opcional pero si se ingresa, validar formato)
-      if (telefono && !validarFormato('telefono', telefono)) {
-          toast(mensajeErrorFormato('telefono'), true);
-          return;
-      }
-
-      // Email (opcional pero si se ingresa, validar formato)
-      if (email && !validarFormato('email', email)) {
-          toast(mensajeErrorFormato('email'), true);
-          return;
-      }
-
-      // CBU (opcional)
-      if (cbu && !validarFormato('cbu', cbu)) {
-          toast(mensajeErrorFormato('cbu'), true);
-          return;
-      }
-
-      // Fecha de nacimiento (opcional, no futura)
-      if (fechaNacimiento && !validarFormato('fechaNacimiento', fechaNacimiento)) {
-          toast(mensajeErrorFormato('fechaNacimiento'), true);
-          return;
-      }
-
-      // Fecha de ingreso (opcional, no futura)
-      if (fechaIngreso && !validarFormato('fechaIngreso', fechaIngreso)) {
-          toast(mensajeErrorFormato('fechaIngreso'), true);
-          return;
-      }
-
-      // █████████████████████████████████████████████████████
-      // VALIDACIÓN: Legajo único (opcional)
-      // █████████████████████████████████████████████████████
-      if (legajo) {
-          const legajoQuery = await db.collection("vigiladores")
-              .where("legajo", "==", legajo)
-              .get();
-        
-          if (!legajoQuery.empty) {
-              const existingDoc = legajoQuery.docs[0];
-              if (editing.id && existingDoc.id !== editing.id) {
-                  toast(`❌ Ya existe un vigilador con el Legajo ${legajo}.`, true);
-                  return;
-              } else if (!editing.id) {
-                  toast(`❌ Ya existe un vigilador con el Legajo ${legajo}.`, true);
-                  return;
-              }
-          }
-      }
-      data.foto = editing.foto || "";
-      data.entregas = arrays.entregas;
-      data.evaluaciones = arrays.evaluaciones;
-      data.sanciones = arrays.sanciones;
-      // Inicializar campos de revalida y biometría (si no vienen en el formulario)
-      data.revalidaNumero = data.revalidaNumero || '';
-      data.revalidaOrganismo = data.revalidaOrganismo || '';
-      data.biometricoNumero = data.biometricoNumero || '';
-      data.biometricoOrganismo = data.biometricoOrganismo || '';
-      data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-
-      try {
-        loading(true);
-
-        if (editing.id) {
-          await db.collection("vigiladores").doc(editing.id).set(data, {merge:true});
-        } else {
-          data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-          await db.collection("vigiladores").add(data);
+        // DNI (obligatorio)
+        if (!dni || !validarFormato('dni', dni)) {
+            toast(mensajeErrorFormato('dni'), true);
+            return;
         }
 
-        closeModal();
-        toast("Vigilador guardado correctamente.");
-      } catch (error) {
-        toast(error.message, true);
-      } finally {
-        loading(false);
-      }
+        // Legajo (opcional, pero si se ingresa, validar formato númerico)
+        if (legajo && !validarFormato('legajo', legajo)) {
+            toast(mensajeErrorFormato('legajo'), true);
+            return;
+        }
+
+        // CUIL (opcional)
+        if (cuil && !validarFormato('cuil', cuil)) {
+            toast(mensajeErrorFormato('cuil'), true);
+            return;
+        }
+
+        // Teléfono (opcional)
+        if (telefono && !validarFormato('telefono', telefono)) {
+            toast(mensajeErrorFormato('telefono'), true);
+            return;
+        }
+
+        // Email (opcional)
+        if (email && !validarFormato('email', email)) {
+            toast(mensajeErrorFormato('email'), true);
+            return;
+        }
+
+        // CBU (opcional)
+        if (cbu && !validarFormato('cbu', cbu)) {
+            toast(mensajeErrorFormato('cbu'), true);
+            return;
+        }
+
+        // Fecha de nacimiento (opcional, no futura)
+        if (fechaNacimiento && !validarFormato('fechaNacimiento', fechaNacimiento)) {
+            toast(mensajeErrorFormato('fechaNacimiento'), true);
+            return;
+        }
+
+        // Fecha de ingreso (opcional, no futura)
+        if (fechaIngreso && !validarFormato('fechaIngreso', fechaIngreso)) {
+            toast(mensajeErrorFormato('fechaIngreso'), true);
+            return;
+        }
+
+        // █████████████████████████████████████████████████████
+        // VALIDACIONES DE DUPLICADOS
+        // █████████████████████████████████████████████████████
+
+        // DNI único
+        if (dni) {
+            const dniQuery = await db.collection("vigiladores")
+                .where("dni", "==", dni)
+                .get();
+        
+            if (!dniQuery.empty) {
+                const existingDoc = dniQuery.docs[0];
+                if (editing.id && existingDoc.id !== editing.id) {
+                    toast(`❌ Ya existe un vigilador con el DNI ${dni}.`, true);
+                    return;
+                } else if (!editing.id) {
+                    toast(`❌ Ya existe un vigilador con el DNI ${dni}.`, true);
+                    return;
+                }
+            }
+        }
+
+        // Legajo único (opcional)
+        if (legajo) {
+            const legajoQuery = await db.collection("vigiladores")
+                .where("legajo", "==", legajo)
+                .get();
+        
+            if (!legajoQuery.empty) {
+                const existingDoc = legajoQuery.docs[0];
+                if (editing.id && existingDoc.id !== editing.id) {
+                    toast(`❌ Ya existe un vigilador con el Legajo ${legajo}.`, true);
+                    return;
+                } else if (!editing.id) {
+                    toast(`❌ Ya existe un vigilador con el Legajo ${legajo}.`, true);
+                    return;
+                }
+            }
+        }
+
+        // █████████████████████████████████████████████████████
+        // ARMAR OBJETO PARA GUARDAR
+        // █████████████████████████████████████████████████████
+
+        data.foto = editing.foto || "";
+        data.entregas = arrays.entregas;
+        data.evaluaciones = arrays.evaluaciones;
+        data.sanciones = arrays.sanciones;
+        data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+
+        // Inicializar campos de revalida y biometría (si no vienen en el formulario)
+        data.revalidaNumero = data.revalidaNumero || '';
+        data.revalidaOrganismo = data.revalidaOrganismo || '';
+        data.biometricoNumero = data.biometricoNumero || '';
+        data.biometricoOrganismo = data.biometricoOrganismo || '';
+
+        // █████████████████████████████████████████████████████
+        // GUARDAR EN FIRESTORE
+        // █████████████████████████████████████████████████████
+
+        try {
+            loading(true);
+
+            if (editing.id) {
+                await db.collection("vigiladores").doc(editing.id).set(data, { merge: true });
+            } else {
+                data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                await db.collection("vigiladores").add(data);
+            }
+
+            closeModal();
+            toast("Vigilador guardado correctamente.");
+        } catch (error) {
+            toast(error.message, true);
+        } finally {
+            loading(false);
+        }
     }
 
     function closeModal() {
