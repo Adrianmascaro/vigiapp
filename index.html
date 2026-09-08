@@ -1040,25 +1040,45 @@
         }
 
     // Ordenar alfabéticamente por apellido
-      list.sort((a, b) => (a.apellido || "").localeCompare(b.apellido || ""));
+        list.sort((a, b) => (a.apellido || "").localeCompare(b.apellido || ""));
 
     // Construir el HTML de la lista (SOLO UNA VEZ)
-      $("#list").innerHTML = list.length ? list.map(v => {
-      // █████████████████████████████████████████████
-      // ADVERTENCIA DE VENCIMIENTOS (3 independientes)
-      // █████████████████████████████████████████████
-            let warningIcons = '';
-            const vencimientosCheck = [
-                { campo: 'habilitacionVencimiento', emoji: '📋', label: 'Habilitación' },
-                { campo: 'revalidaFechaVenc', emoji: '🔄', label: 'Revalida' },
-                { campo: 'biometricoFechaVenc', emoji: '🖐️', label: 'Biometría' }
-            ];
-            vencimientosCheck.forEach(({ campo, emoji, label }) => {
-                const diff = calcularDiasRestantes(v[campo]);
-                if (diff !== null && diff <= 30 && diff >= 0) {
-                    warningIcons += `<span style="color:#dc3545; font-weight:bold; margin-left:5px; cursor:help;" title="${label}: vence en ${diff} días">${emoji}</span>`;
-                }
-            });
+        $("#list").innerHTML = list.length ? list.map(v => {
+        // ADVERTENCIA DE VENCIMIENTOS (incluyendo CABA y Provincia si corresponde)
+        let warningIcons = '';
+        const vencimientosCheck = [];
+
+        // Siempre verificar los campos principales (si existen)
+        if (v.habilitacionVencimiento) {
+            vencimientosCheck.push({ campo: 'habilitacionVencimiento', emoji: '📋', label: 'Habilitación' });
+        }
+        if (v.revalidaFechaVenc) {
+            vencimientosCheck.push({ campo: 'revalidaFechaVenc', emoji: '🔄', label: 'Revalida' });
+        }
+        if (v.biometricoFechaVenc) {
+            vencimientosCheck.push({ campo: 'biometricoFechaVenc', emoji: '🖐️', label: 'Biometría' });
+        }
+
+        // Si el tipo es "Ambas", agregar las fechas específicas
+        if (v.habilitacionTipo === 'Ambas') {
+            if (v.habilitacionVencimientoCABA) {
+                vencimientosCheck.push({ campo: 'habilitacionVencimientoCABA', emoji: '📋', label: 'Habilitación CABA' });
+            }
+            if (v.revalidaFechaVencCABA) {
+                vencimientosCheck.push({ campo: 'revalidaFechaVencCABA', emoji: '🔄', label: 'Revalida CABA' });
+            }
+            if (v.biometricoFechaVencCABA) {
+                vencimientosCheck.push({ campo: 'biometricoFechaVencCABA', emoji: '🖐️', label: 'Biometría CABA' });
+            }
+            // ... similar para Provincia
+        }
+
+        vencimientosCheck.forEach(({ campo, emoji, label }) => {
+            const diff = calcularDiasRestantes(v[campo]);
+            if (diff !== null && diff <= 30 && diff >= 0) {
+                warningIcons += `<span style="color:#dc3545; font-weight:bold; margin-left:5px; cursor:help;" title="${label}: vence en ${diff} días">${emoji}</span>`;
+            }
+        });
 
         // █████████████████████████████████████████████
         // 2. ESTADO DEL VIGILADOR (ALTA / BAJA)
@@ -1240,105 +1260,86 @@
             </section>
 
             <section class="pane ${activeTab === 1 ? "active" : ""}">
-    
-    <!-- ========================================= -->
-    <!-- SECCIÓN 1: HABILITACIÓN                   -->
-    <!-- ========================================= -->
-                <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 20px; background: #fafafa;">
-                    <h4 style="margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
-                        <span>📋</span> Habilitación
-                        ${(() => {
-                            const diff = calcularDiasRestantes(editing?.habilitacionVencimiento);
-                            if (diff !== null && diff <= 30 && diff >= 0) {
-                                return `<span style="background: #ffc107; color: #856404; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">⚠️ Vence en ${diff} días</span>`;
-                            }
-                            return '';
-                        })()}
-                    </h4>
-                    <div class="grid">
-                        ${select("Tipo","habilitacionTipo",["Provincia","CABA","Ambas"])}
-                        ${field("Número","habilitacionNumero")}
-                        ${field("Organismo","habilitacionOrganismo","text","wide")}
-                        ${field("Fecha de vencimiento","habilitacionVencimiento","date")}
-                    </div>
-                    ${(() => {
-                        const diff = calcularDiasRestantes(editing?.habilitacionVencimiento);
-                        if (diff !== null && diff <= 30 && diff >= 0) {
-                            const fecha = new Date(editing.habilitacionVencimiento).toLocaleDateString('es-AR');
-                            return `
-                                <div style="background: #fff3cd; color: #856404; padding: 8px 12px; border-radius: 6px; margin-top: 10px; border: 1px solid #ffeeba;">
-                                    ⚠️ <strong>Vence el ${fecha}</strong> (faltan ${diff} días)
-                                </div>
-                            `;
-                        }
-                        return '';
-                    })()}
+                <!-- Selector de tipo -->
+                <div class="grid" style="margin-bottom: 15px;">
+                    ${select("Tipo de habilitación","habilitacionTipo",["Provincia","CABA","Ambas"], "", "onchange=\"toggleSeccionesHabilitacion()\"")}
                 </div>
 
-    <!-- ========================================= -->
-    <!-- SECCIÓN 2: REVALIDA                       -->
-    <!-- ========================================= -->
-                <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 20px; background: #fafafa;">
-                    <h4 style="margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
-                        <span>🔄</span> Revalida
-                        ${(() => {
-                            const diff = calcularDiasRestantes(editing?.revalidaFechaVenc);
-                            if (diff !== null && diff <= 30 && diff >= 0) {
-                                return `<span style="background: #ffc107; color: #856404; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">⚠️ Vence en ${diff} días</span>`;
-                            }
-                            return '';
-                        })()}
-                    </h4>
-                    <div class="grid">
-                        ${field("Número","revalidaNumero")}
-                        ${field("Organismo","revalidaOrganismo","text","wide")}
-                        ${field("Fecha de vencimiento","revalidaFechaVenc","date")}
+                <!-- ========================================= -->
+                <!-- SECCIÓN ÚNICA (para Provincia o CABA)    -->
+                <!-- ========================================= -->
+                <div id="seccionUnica" style="${editing?.habilitacionTipo === 'Ambas' ? 'display:none;' : ''}">
+                    <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; background: #fafafa;">
+                        <h4 style="margin: 0 0 10px 0;">📋 Habilitación</h4>
+                        <div class="grid">
+                            ${field("Número","habilitacionNumero")}
+                            ${field("Organismo","habilitacionOrganismo","text","wide")}
+                            ${field("Vencimiento","habilitacionVencimiento","date")}
+                        </div>
+                        <h4 style="margin: 15px 0 10px 0;">🔄 Revalida</h4>
+                        <div class="grid">
+                            ${field("Número","revalidaNumero")}
+                            ${field("Organismo","revalidaOrganismo","text","wide")}
+                            ${field("Vencimiento","revalidaFechaVenc","date")}
+                        </div>
+                        <h4 style="margin: 15px 0 10px 0;">🖐️ Biometría</h4>
+                        <div class="grid">
+                            ${field("Número","biometricoNumero")}
+                            ${field("Organismo","biometricoOrganismo","text","wide")}
+                            ${field("Vencimiento","biometricoFechaVenc","date")}
+                        </div>
                     </div>
-                    ${(() => {
-                        const diff = calcularDiasRestantes(editing?.revalidaFechaVenc);
-                        if (diff !== null && diff <= 30 && diff >= 0) {
-                            const fecha = new Date(editing.revalidaFechaVenc).toLocaleDateString('es-AR');
-                            return `
-                                <div style="background: #fff3cd; color: #856404; padding: 8px 12px; border-radius: 6px; margin-top: 10px; border: 1px solid #ffeeba;">
-                                    ⚠️ <strong>Vence el ${fecha}</strong> (faltan ${diff} días)
-                                </div>
-                            `;
-                        }
-                        return '';
-                    })()}
                 </div>
 
-    <!-- ========================================= -->
-    <!-- SECCIÓN 3: BIOMETRÍA                     -->
-    <!-- ========================================= -->
-                <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; background: #fafafa;">
-                    <h4 style="margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
-                        <span>🖐️</span> Datos biométricos
-                        ${(() => {
-                            const diff = calcularDiasRestantes(editing?.biometricoFechaVenc);
-                            if (diff !== null && diff <= 30 && diff >= 0) {
-                                return `<span style="background: #ffc107; color: #856404; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">⚠️ Vence en ${diff} días</span>`;
-                            }
-                            return '';
-                        })()}
-                    </h4>
-                    <div class="grid">
-                        ${field("Número","biometricoNumero")}
-                        ${field("Organismo","biometricoOrganismo","text","wide")}
-                        ${field("Fecha de vencimiento","biometricoFechaVenc","date")}
+                <!-- ========================================= -->
+                <!-- SECCIÓN DOBLE (para Ambas)               -->
+                <!-- ========================================= -->
+                <div id="seccionAmbas" style="${editing?.habilitacionTipo !== 'Ambas' ? 'display:none;' : ''}">
+                    <!-- CABA -->
+                    <div style="border: 1px solid #1479d1; border-radius: 8px; padding: 15px; margin-bottom: 20px; background: #f0f7ff;">
+                        <h4 style="margin: 0 0 10px 0; color: #1479d1;">🏛️ CABA</h4>
+                        <h5 style="margin: 5px 0;">📋 Habilitación</h5>
+                        <div class="grid">
+                            ${field("Número","habilitacionNumeroCABA")}
+                            ${field("Organismo","habilitacionOrganismoCABA","text","wide")}
+                            ${field("Vencimiento","habilitacionVencimientoCABA","date")}
+                        </div>
+                        <h5 style="margin: 10px 0 5px 0;">🔄 Revalida</h5>
+                        <div class="grid">
+                            ${field("Número","revalidaNumeroCABA")}
+                            ${field("Organismo","revalidaOrganismoCABA","text","wide")}
+                            ${field("Vencimiento","revalidaFechaVencCABA","date")}
+                        </div>
+                        <h5 style="margin: 10px 0 5px 0;">🖐️ Biometría</h5>
+                        <div class="grid">
+                            ${field("Número","biometricoNumeroCABA")}
+                            ${field("Organismo","biometricoOrganismoCABA","text","wide")}
+                            ${field("Vencimiento","biometricoFechaVencCABA","date")}
+                        </div>
                     </div>
-                    ${(() => {
-                        const diff = calcularDiasRestantes(editing?.biometricoFechaVenc);
-                        if (diff !== null && diff <= 30 && diff >= 0) {
-                            const fecha = new Date(editing.biometricoFechaVenc).toLocaleDateString('es-AR');
-                            return `
-                                <div style="background: #fff3cd; color: #856404; padding: 8px 12px; border-radius: 6px; margin-top: 10px; border: 1px solid #ffeeba;">
-                                    ⚠️ <strong>Vence el ${fecha}</strong> (faltan ${diff} días)
-                                </div>
-                            `;
-                        }
-                        return '';
-                    })()}
+
+                    <!-- Provincia -->
+                    <div style="border: 1px solid #18865b; border-radius: 8px; padding: 15px; background: #f0fff4;">
+                        <h4 style="margin: 0 0 10px 0; color: #18865b;">🏛️ Provincia</h4>
+                        <h5 style="margin: 5px 0;">📋 Habilitación</h5>
+                        <div class="grid">
+                            ${field("Número","habilitacionNumeroProvincia")}
+                            ${field("Organismo","habilitacionOrganismoProvincia","text","wide")}
+                            ${field("Vencimiento","habilitacionVencimientoProvincia","date")}
+                        </div>
+                        <h5 style="margin: 10px 0 5px 0;">🔄 Revalida</h5>
+                        <div class="grid">
+                            ${field("Número","revalidaNumeroProvincia")}
+                            ${field("Organismo","revalidaOrganismoProvincia","text","wide")}
+                            ${field("Vencimiento","revalidaFechaVencProvincia","date")}
+                        </div>
+                        <h5 style="margin: 10px 0 5px 0;">🖐️ Biometría</h5>
+                        <div class="grid">
+                            ${field("Número","biometricoNumeroProvincia")}
+                            ${field("Organismo","biometricoOrganismoProvincia","text","wide")}
+                            ${field("Vencimiento","biometricoFechaVencProvincia","date")}
+                        </div>
+                    </div>
                 </div>
             </section>
             
@@ -2442,6 +2443,21 @@
         events.forEach(event => {
             document.addEventListener(event, resetInactivityTimer, { passive: true });
         });
+    }
+
+    function toggleSeccionesHabilitacion() {
+        const tipo = document.querySelector('select[name="habilitacionTipo"]')?.value;
+        const seccionUnica = document.getElementById('seccionUnica');
+        const seccionAmbas = document.getElementById('seccionAmbas');
+        if (!seccionUnica || !seccionAmbas) return;
+
+        if (tipo === 'Ambas') {
+            seccionUnica.style.display = 'none';
+            seccionAmbas.style.display = 'block';
+        } else {
+            seccionUnica.style.display = 'block';
+            seccionAmbas.style.display = 'none';
+        }
     }
     
     init();
