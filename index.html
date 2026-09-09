@@ -146,175 +146,173 @@
             <span class="spacer"></span>
             <span id="userEmail" class="muted" style="color:#d6e8fa"></span>
             <button class="secondary" onclick="logout()">Salir</button>
-        </header>
+      </header>
 
     <!-- ========================================= -->
     <!-- VISTA MENÚ (página de inicio)            -->
     <!-- ========================================= -->
-        <div id="vistaMenu" class="vista active">
-            <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
-                <h2 style="color: var(--navy);">Bienvenido, <span id="nombreUsuarioMenu">Usuario</span></h2>
-                <p style="color: #657587; margin-bottom: 30px;">Selecciona un módulo para comenzar a trabajar.</p>
+      <div id="vistaMenu" class="vista active">
+          <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
+              <h2 style="color: var(--navy);">Bienvenido, <span id="nombreUsuarioMenu">Usuario</span></h2>
+                  <p style="color: #657587; margin-bottom: 30px;">Selecciona un módulo para comenzar a trabajar.</p>
             
-                <div class="modulos-grid">
-                <!-- Módulo: Vigiladores -->
-                    <div class="modulo-card" onclick="cambiarModulo('vigiladores')" data-modulo="vigiladores">
-                        <span>👮</span>
-                        <h3>Gestión de Vigiladores</h3>
-                        <p>CRUD completo, habilitaciones, RRHH, ropa, disciplina y estado judicial.</p>
-                    </div>
+                  <div class="modulos-grid">
+                      <!-- Módulo: Vigiladores -->
+                      <div class="modulo-card" onclick="cambiarModulo('vigiladores')" data-modulo="vigiladores">
+                          <span>👮</span>
+                          <h3>Gestión de Vigiladores</h3>
+                          <p>CRUD completo, habilitaciones, RRHH, ropa, disciplina y estado judicial.</p>
+                      </div>
 
-                <!-- Módulo: Logística -->
-                    <div class="modulo-card" onclick="cambiarModulo('logistica')" data-modulo="logistica">
-                        <span>👔</span>
-                        <h3>Logística de Uniformes</h3>
-                        <p>Stock, compras, incidencias, devoluciones y ciclo de vida de prendas.</p>
-                    </div>
+                      <!-- Módulo: Logística -->
+                      <div class="modulo-card" onclick="cambiarModulo('logistica')" data-modulo="logistica">
+                          <span>👔</span>
+                          <h3>Logística de Uniformes</h3>
+                          <p>Stock, compras, incidencias, devoluciones y ciclo de vida de prendas.</p>
+                      </div>
 
-                <!-- Módulo: Tecnología -->
-                    <div class="modulo-card" onclick="cambiarModulo('tecnologia')" data-modulo="tecnologia">
-                        <span>💻</span>
-                        <h3>Tecnología</h3>
-                        <p>Gestión de equipos HT, celulares, CCTV y su asignación.</p>
-                    </div>
+                      <!-- Módulo: Tecnología -->
+                      <div class="modulo-card" onclick="cambiarModulo('tecnologia')" data-modulo="tecnologia">
+                          <span>💻</span>
+                          <h3>Tecnología</h3>
+                          <p>Gestión de equipos HT, celulares, CCTV y su asignación.</p>
+                      </div>
 
-                <!-- Módulo: Objetivos -->
-                    <div class="modulo-card" onclick="cambiarModulo('objetivos')" data-modulo="objetivos">
-                        <span>🏢</span>
-                        <h3>Objetivos</h3>
-                        <p>Gestión de objetivos.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+                      <!-- Módulo: Objetivos -->
+                      <div class="modulo-card" onclick="cambiarModulo('objetivos')" data-modulo="objetivos">
+                          <span>🏢</span>
+                          <h3>Objetivos</h3>
+                          <p>Gestión de objetivos.</p>
+                      </div>
+                  </div>
+          </div>
+      </div>
 
     <!-- ========================================= -->
     <!-- VISTA VIGILADORES (contenido actual)      -->
     <!-- ========================================= -->
-        <div id="vistaVigiladores" class="vista hidden">
-            <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
-                <button class="secondary" onclick="volverMenu()" style="margin-bottom: 15px;">← Volver al menú</button>
+      <div id="vistaVigiladores" class="vista hidden">
+          <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+              <button class="secondary" onclick="volverMenu()" style="margin-bottom: 15px;">← Volver al menú</button>
             
             <!-- TODO EL CONTENIDO ORIGINAL DE section.container -->
-                <section class="container" style="max-width: 100%; margin: 0; padding: 0;">
+              <section class="container" style="max-width: 100%; margin: 0; padding: 0;">
                 <!-- Barra de herramientas -->
-                    <div class="toolbar">
-                        <input id="search" class="search" placeholder="Buscar por nombre, apellido o DNI…" oninput="render()">
-                        <select id="filtroEstado" onchange="render()" style="padding:10px 13px; border:1px solid var(--line); border-radius:8px; background:white;">
-                            <option value="todos">Todos</option>
-                            <option value="ALTA">🟢 Activos</option>
-                            <option value="BAJA_PROCESO">🟡 En proceso de baja</option>
-                            <option value="BAJA_DEFINITIVA">🔴 Bajas definitivas</option>
-                        </select>
-                        <button class="secondary" onclick="toggleFilters()">Filtros avanzados</button>
-                        <button class="secondary" onclick="exportJSON()">Exportar JSON</button>
-                        <label class="secondary" style="padding:10px 14px;font-weight:650;cursor:pointer">
-                        Importar JSON
-                            <input type="file" accept=".json" class="hidden" onchange="importJSON(event)">
-                        </label>
-                        <button class="primary" onclick="openModal()">+ Nuevo Vigilador</button>
-                    </div>
+                  <div class="toolbar">
+                      <input id="search" class="search" placeholder="Buscar por nombre, apellido o DNI…" oninput="render()">
+                      <select id="filtroEstado" onchange="render()" style="padding:10px 13px; border:1px solid var(--line); border-radius:8px; background:white;">
+                          <option value="todos">Todos</option>
+                          <option value="ALTA">🟢 Activos</option>
+                          <option value="BAJA_PROCESO">🟡 En proceso de baja</option>
+                          <option value="BAJA_DEFINITIVA">🔴 Bajas definitivas</option>
+                      </select>
+                      <button class="secondary" onclick="toggleFilters()">Filtros avanzados</button>
+                      <button class="secondary" onclick="exportJSON()">Exportar JSON</button>
+                      <label class="secondary" style="padding:10px 14px;font-weight:650;cursor:pointer">
+                      Importar JSON
+                          <input type="file" accept=".json" class="hidden" onchange="importJSON(event)">
+                      </label>
+                      <button class="primary" onclick="openModal()">+ Nuevo Vigilador</button>
+                  </div>
 
                 <!-- Filtros avanzados -->
-                    <form id="filterForm" class="filters card hidden">
-                        <div class="grid">
-                            <div class="field">
-                                <label>Habilitación</label>
-                                <select name="habTipo" onchange="render()">
-                                    <option value="">Todas</option><option>Provincia</option><option>CABA</option>
-                                </select>
-                            </div>
-                            <div class="field"><label>Vence antes de</label><input type="date" name="venceAntes" onchange="render()"></div>
-                            <div class="field">
-                                <label>Categoría</label>
-                                <select name="categoria" onchange="render()">
-                                    <option value="">Todas</option><option>Vigilador</option><option>Vigilador Senior</option><option>Supervisor</option><option>Jefe de Seguridad</option>
-                                </select>
-                            </div>
-                            <div class="field"><label>Domicilio</label><input name="domicilio" oninput="render()"></div>
-                        </div>
-                    </form>
+                  <form id="filterForm" class="filters card hidden">
+                      <div class="grid">
+                          <div class="field">
+                              <label>Habilitación</label>
+                              <select name="habTipo" onchange="render()">
+                                  <option value="">Todas</option><option>Provincia</option><option>CABA</option>
+                              </select>
+                          </div>
+                          <div class="field"><label>Vence antes de</label><input type="date" name="venceAntes" onchange="render()"></div>
+                          <div class="field">
+                              <label>Categoría</label>
+                              <select name="categoria" onchange="render()">
+                                  <option value="">Todas</option><option>Vigilador</option><option>Vigilador Senior</option><option>Supervisor</option><option>Jefe de Seguridad</option>
+                              </select>
+                          </div>
+                          <div class="field"><label>Domicilio</label><input name="domicilio" oninput="render()"></div>
+                      </div>
+                  </form>
 
                 <!-- Lista de vigiladores -->
-                    <div class="card list" id="list"><div class="empty">Cargando vigiladores…</div></div>
-                </section>
-            </div>
-        </div>
+                  <div class="card list" id="list"><div class="empty">Cargando vigiladores…</div></div>
+              </section>
+          </div>
+      </div>
 
     <!-- ========================================= -->
     <!-- VISTA LOGÍSTICA (nuevo, vacío)           -->
     <!-- ========================================= -->
-        <div id="vistaLogistica" class="vista hidden">
-            <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
-                <button class="secondary" onclick="volverMenu()" style="margin-bottom: 15px;">← Volver al menú</button>
-                <h2 style="color: var(--navy);">👔 Logística de Uniformes</h2>
-                <p style="color: #657587;">Próximamente: gestión de stock, compras, incidencias y ciclo de vida de prendas.</p>
+      <div id="vistaLogistica" class="vista hidden">
+          <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+              <button class="secondary" onclick="volverMenu()" style="margin-bottom: 15px;">← Volver al menú</button>
+              <h2 style="color: var(--navy);">👔 Logística de Uniformes</h2>
+              <p style="color: #657587;">Próximamente: gestión de stock, compras, incidencias y ciclo de vida de prendas.</p>
             <!-- Aquí irá todo el contenido del módulo de Logística -->
-            </div>
-        </div>
+          </div>
+      </div>
 
     <!-- ========================================= -->
     <!-- VISTA TECNOLOGÍA (nuevo, vacío)          -->
     <!-- ========================================= -->
-        <div id="vistaTecnologia" class="vista hidden">
-            <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
-                <button class="secondary" onclick="volverMenu()" style="margin-bottom: 15px;">← Volver al menú</button>
-                <h2 style="color: var(--navy);">📡 Tecnología</h2>
-                <p style="color: #657587;">Próximamente: gestión de equipos HT, celulares, CCTV y asignaciones.</p>
-            </div>
-        </div>
+      <div id="vistaTecnologia" class="vista hidden">
+          <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+              <button class="secondary" onclick="volverMenu()" style="margin-bottom: 15px;">← Volver al menú</button>
+              <h2 style="color: var(--navy);">📡 Tecnología</h2>
+              <p style="color: #657587;">Próximamente: gestión de equipos HT, celulares, CCTV y asignaciones.</p>
+          </div>
+      </div>
 
     <!-- ========================================= -->
     <!-- VISTA OBJETIVOS                           -->
     <!-- ========================================= -->
-    <div id="vistaObjetivos" class="vista hidden">
-        <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
-            <button class="secondary" onclick="volverMenu()" style="margin-bottom: 15px;">← Volver al menú</button>
+      <div id="vistaObjetivos" class="vista hidden">
+          <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+              <button class="secondary" onclick="volverMenu()" style="margin-bottom: 15px;">← Volver al menú</button>
         
-            <section class="container" style="max-width: 100%; margin: 0; padding: 0;">
+              <section class="container" style="max-width: 100%; margin: 0; padding: 0;">
                 <!-- Barra de herramientas -->
-                <div class="toolbar">
-                    <input id="searchObjetivo" class="search" placeholder="Buscar por nombre, administración o dirección…" oninput="renderObjetivos()">
-                    <button class="secondary" onclick="toggleFiltrosObjetivos()">Filtros</button>
-                    <button class="primary" onclick="openModalObjetivo()">+ Nuevo Objetivo</button>
-                </div>
+                  <div class="toolbar">
+                      <input id="searchObjetivo" class="search" placeholder="Buscar por nombre, administración o dirección…" oninput="renderObjetivos()">
+                      <button class="secondary" onclick="toggleFiltrosObjetivos()">Filtros</button>
+                      <button class="primary" onclick="openModalObjetivo()">+ Nuevo Objetivo</button>
+                  </div>
 
                 <!-- Filtros avanzados (opcional) -->
-                <form id="filterFormObjetivos" class="filters card hidden">
-                    <div class="grid">
-                        <div class="field">
-                            <label>Estado</label>
-                            <select name="estado" onchange="renderObjetivos()">
-                                <option value="">Todos</option>
-                                <option value="activo">Activo</option>
-                                <option value="inactivo">Inactivo</option>
-                            </select>
-                        </div>
-                        <div class="field">
-                            <label>Tipo de servicio</label>
-                            <select name="tipoServicio" onchange="renderObjetivos()">
-                                <option value="">Todos</option>
-                                <option value="vigilancia_fija">Vigilancia fija</option>
-                                <option value="vigilancia_movil">Vigilancia móvil</option>
-                                <option value="CCTV">CCTV</option>
-                                <option value="monitoreo">Monitoreo</option>
-                                <option value="integral">Servicio integral</option>
-                            </select>
-                        </div>
-                    </div>
-                </form>
+                  <form id="filterFormObjetivos" class="filters card hidden">
+                      <div class="grid">
+                          <div class="field">
+                              <label>Estado</label>
+                              <select name="estado" onchange="renderObjetivos()">
+                                  <option value="">Todos</option>
+                                  <option value="activo">Activo</option>
+                                  <option value="inactivo">Inactivo</option>
+                              </select>
+                          </div>
+                          <div class="field">
+                              <label>Tipo de servicio</label>
+                              <select name="tipoServicio" onchange="renderObjetivos()">
+                                  <option value="">Todos</option>
+                                  <option value="vigilancia_fija">Vigilancia fija</option>
+                                  <option value="vigilancia_movil">Vigilancia móvil</option>
+                                  <option value="CCTV">CCTV</option>
+                                  <option value="monitoreo">Monitoreo</option>
+                                  <option value="integral">Servicio integral</option>
+                              </select>
+                          </div>
+                      </div>
+                  </form>
 
                 <!-- Lista de objetivos -->
-                <div class="card list" id="listaObjetivos"><div class="empty">Cargando objetivos…</div></div>
-            </section>
-        </div>
-    </div>
+                  <div class="card list" id="listaObjetivos"><div class="empty">Cargando objetivos…</div></div>
+              </section>
+          </div>
+      </div>
 
-        <!-- MODAL HOST (global, fuera de las vistas) -->
-        <div id="modalHost"></div>
+    <!-- MODAL HOST (global, fuera de las vistas) -->
+      <div id="modalHost"></div>
   </main>
-
-  <div id="modalHost"></div>
 
   <script>
     // =============================================
@@ -1020,13 +1018,13 @@
             `${v.nombre} ${v.apellido} ${v.dni}`.toLowerCase().includes(query)
         );
 
-      // Filtro por estado (desde el selector)
+        // Filtro por estado (desde el selector)
         const estadoFiltro = document.getElementById('filtroEstado').value;
         if (estadoFiltro !== 'todos') {
             list = list.filter(v => v.estado === estadoFiltro);
         }
-      
-    // Aplicar filtros avanzados (si están visibles)
+
+        // Aplicar filtros avanzados (si están visibles)
         if (!form.classList.contains("hidden")) {
             const data = new FormData(form);
             const minNota = Number(data.get("minNota") || 0);
@@ -1039,53 +1037,78 @@
             );
         }
 
-    // Ordenar alfabéticamente por apellido
+        // Ordenar alfabéticamente por apellido
         list.sort((a, b) => (a.apellido || "").localeCompare(b.apellido || ""));
 
-    // Construir el HTML de la lista (SOLO UNA VEZ)
+        // Construir el HTML de la lista
         $("#list").innerHTML = list.length ? list.map(v => {
-        // ADVERTENCIA DE VENCIMIENTOS (incluyendo CABA y Provincia si corresponde)
-        let warningIcons = '';
-        const vencimientosCheck = [];
+            // █████████████████████████████████████████████
+            // ADVERTENCIA DE VENCIMIENTOS (completo)
+            // █████████████████████████████████████████████
+            let warningIcons = '';
+            const vencimientosCheck = [];
 
-        // Siempre verificar los campos principales (si existen)
-        if (v.habilitacionVencimiento) {
-            vencimientosCheck.push({ campo: 'habilitacionVencimiento', emoji: '📋', label: 'Habilitación' });
-        }
-        if (v.revalidaFechaVenc) {
-            vencimientosCheck.push({ campo: 'revalidaFechaVenc', emoji: '🔄', label: 'Revalida' });
-        }
-        if (v.biometricoFechaVenc) {
-            vencimientosCheck.push({ campo: 'biometricoFechaVenc', emoji: '🖐️', label: 'Biometría' });
-        }
-
-        // Si el tipo es "Ambas", agregar las fechas específicas
-        if (v.habilitacionTipo === 'Ambas') {
-            if (v.habilitacionVencimientoCABA) {
-                vencimientosCheck.push({ campo: 'habilitacionVencimientoCABA', emoji: '📋', label: 'Habilitación CABA' });
+            // Campos principales (si existen)
+            if (v.habilitacionVencimiento) {
+                vencimientosCheck.push({ campo: 'habilitacionVencimiento', emoji: '📋', label: 'Habilitación' });
             }
-            if (v.revalidaFechaVencCABA) {
-                vencimientosCheck.push({ campo: 'revalidaFechaVencCABA', emoji: '🔄', label: 'Revalida CABA' });
+            if (v.revalidaFechaVenc) {
+                vencimientosCheck.push({ campo: 'revalidaFechaVenc', emoji: '🔄', label: 'Revalida' });
             }
-            if (v.biometricoFechaVencCABA) {
-                vencimientosCheck.push({ campo: 'biometricoFechaVencCABA', emoji: '🖐️', label: 'Biometría CABA' });
+            if (v.biometricoFechaVenc) {
+                vencimientosCheck.push({ campo: 'biometricoFechaVenc', emoji: '🖐️', label: 'Biometría' });
             }
-            // ... similar para Provincia
-        }
 
-        vencimientosCheck.forEach(({ campo, emoji, label }) => {
-            const diff = calcularDiasRestantes(v[campo]);
-            if (diff !== null && diff <= 30 && diff >= 0) {
-                warningIcons += `<span style="color:#dc3545; font-weight:bold; margin-left:5px; cursor:help;" title="${label}: vence en ${diff} días">${emoji}</span>`;
+            // Si el tipo es "Ambas", agregar las fechas específicas de CABA y Provincia
+            if (v.habilitacionTipo === 'Ambas') {
+                if (v.habilitacionVencimientoCABA) {
+                    vencimientosCheck.push({ campo: 'habilitacionVencimientoCABA', emoji: '📋', label: 'Habilitación CABA' });
+                }
+                if (v.revalidaFechaVencCABA) {
+                    vencimientosCheck.push({ campo: 'revalidaFechaVencCABA', emoji: '🔄', label: 'Revalida CABA' });
+                }
+                if (v.biometricoFechaVencCABA) {
+                    vencimientosCheck.push({ campo: 'biometricoFechaVencCABA', emoji: '🖐️', label: 'Biometría CABA' });
+                }
+                // Ahora Provincia
+                if (v.habilitacionVencimientoProvincia) {
+                    vencimientosCheck.push({ campo: 'habilitacionVencimientoProvincia', emoji: '📋', label: 'Habilitación Provincia' });
+                }
+                if (v.revalidaFechaVencProvincia) {
+                    vencimientosCheck.push({ campo: 'revalidaFechaVencProvincia', emoji: '🔄', label: 'Revalida Provincia' });
+                }
+                if (v.biometricoFechaVencProvincia) {
+                    vencimientosCheck.push({ campo: 'biometricoFechaVencProvincia', emoji: '🖐️', label: 'Biometría Provincia' });
+                }
             }
-        });
 
-        // █████████████████████████████████████████████
-        // 2. ESTADO DEL VIGILADOR (ALTA / BAJA)
-        // █████████████████████████████████████████████
-            const esBaja = v.estado === 'BAJA';
-            const estadoLabel = esBaja ? '<span style="color:#c53d3d; font-weight:bold; margin-left:8px;">(Dado de baja)</span>' : '';
+            vencimientosCheck.forEach(({ campo, emoji, label }) => {
+                const diff = calcularDiasRestantes(v[campo]);
+                if (diff !== null && diff <= 30 && diff >= 0) {
+                    warningIcons += `<span style="color:#dc3545; font-weight:bold; margin-left:5px; cursor:help;" title="${label}: vence en ${diff} días">${emoji}</span>`;
+                }
+            });
 
+            // █████████████████████████████████████████████
+            // 2. ESTADO DEL VIGILADOR (ALTA, BAJA_PROCESO, BAJA_DEFINITIVA)
+            // █████████████████████████████████████████████
+            const esActivo = v.estado === 'ALTA';
+            const esProcesoBaja = v.estado === 'BAJA_PROCESO';
+            const esBajaDefinitiva = v.estado === 'BAJA_DEFINITIVA';
+
+            let estadoLabel = '';
+            if (esActivo) {
+                estadoLabel = `<span style="color:#18865b; font-weight:bold; margin-left:8px;">🟢 Activo</span>`;
+            } else if (esProcesoBaja) {
+                const etapaInfo = ETAPAS_PROCESO ? ETAPAS_PROCESO[v.etapaProceso] : '';
+                estadoLabel = `<span style="color:#bd6d00; font-weight:bold; margin-left:8px;">🟡 En proceso (${etapaInfo || v.etapaProceso || 'Sin etapa'})</span>`;
+            } else if (esBajaDefinitiva) {
+                estadoLabel = `<span style="color:#c53d3d; font-weight:bold; margin-left:8px;">🔴 Baja definitiva</span>`;
+            }
+
+            // █████████████████████████████████████████████
+            // 3. ROPA PENDIENTE
+            // █████████████████████████████████████████████
             const pendientes = calcularPrendasPendientes(v);
             const tienePendientes = pendientes.length > 0;
             let iconoRopa = '';
@@ -1093,35 +1116,44 @@
                 const detalle = pendientes.map(p => `${p.tipo} x${p.faltante}`).join(', ');
                 iconoRopa = `<span style="margin-left:5px; color:#856404; cursor:help;" title="Faltan prendas: ${detalle}">👔</span>`;
             }
-        
-        // █████████████████████████████████████████████
-        // 3. BOTÓN DE ACCIÓN (Dar de baja / Reactivar)
-        // █████████████████████████████████████████████
-            let botonAccion;
-                if (esBaja) {
-                    botonAccion = `<button class="secondary" onclick="reactivar('${v.id}')" style="color:#18865b;">Reactivar</button>`;
-                } else {
-                    botonAccion = `<button class="secondary danger" onclick="darDeBaja('${v.id}')" style="border-color:#c53d3d; color:#c53d3d;">Dar de baja</button>`;
-                }
 
-                return `
-                    <div class="row ${esBaja ? 'row-baja' : ''}">
-                        <div class="avatar">${v.foto ? `<img class="avatar" src="${v.foto}">` : initials(v)}</div>
-                        <div>
-                            <strong>${esc(v.apellido)}, ${esc(v.nombre)} ${warningIcons} ${estadoLabel} ${iconoRopa}</strong>
-                            <div class="muted">
-                                DNI ${esc(v.dni || "—")} · Legajo ${esc(v.legajo || "—")}
-                                ${v.tipoUniforme ? ` · Uniforme ${v.tipoUniforme}` : ''}
-                            </div>
-                        </div>
-                        <div style="display:flex; gap:8px; align-items:center;">
-                            ${(v.sanciones || []).length ? '<span class="warning" title="Tiene sanciones">⚠</span>' : ''}
-                            <button class="secondary edit" onclick="openModal('${v.id}')">Editar</button>
-                            ${botonAccion}
+            // █████████████████████████████████████████████
+            // 4. BOTONES DE ACCIÓN
+            // █████████████████████████████████████████████
+            let botonAccion = '';
+            let botonesExtra = '';
+
+            if (esActivo) {
+                botonAccion = `<button class="secondary danger" onclick="darDeBaja('${v.id}')" style="border-color:#c53d3d; color:#c53d3d;">Iniciar baja</button>`;
+            } else if (esProcesoBaja) {
+                botonAccion = `<span style="color:#856404; font-weight:bold; padding:8px;">⏳ Baja iniciada</span>`;
+                botonesExtra = `
+                    <button class="secondary" onclick="avanzarEtapaProceso('${v.id}')" style="font-size:12px; padding:4px 8px;">⏩ Avanzar</button>
+                    <button class="secondary danger" onclick="finalizarBaja('${v.id}')" style="font-size:12px; padding:4px 8px;">🔴 Finalizar baja</button>
+                `;
+            } else if (esBajaDefinitiva) {
+                botonAccion = `<button class="secondary" onclick="reactivar('${v.id}')" style="color:#18865b;">Reactivar</button>`;
+            }
+
+            return `
+                <div class="row ${esBajaDefinitiva ? 'row-baja' : ''}">
+                    <div class="avatar">${v.foto ? `<img class="avatar" src="${v.foto}">` : initials(v)}</div>
+                    <div>
+                        <strong>${esc(v.apellido)}, ${esc(v.nombre)} ${warningIcons} ${estadoLabel} ${iconoRopa}</strong>
+                        <div class="muted">
+                            DNI ${esc(v.dni || "—")} · Legajo ${esc(v.legajo || "—")}
+                            ${v.tipoUniforme ? ` · Uniforme ${v.tipoUniforme}` : ''}
                         </div>
                     </div>
-                `;
-      }).join("") : '<div class="empty">No se encontraron vigiladores.</div>';
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        ${(v.sanciones || []).length ? '<span class="warning" title="Tiene sanciones">⚠</span>' : ''}
+                        <button class="secondary edit" onclick="openModal('${v.id}')">Editar</button>
+                        ${botonAccion}
+                        ${botonesExtra}
+                    </div>
+                </div>
+            `;
+        }).join("") : '<div class="empty">No se encontraron vigiladores.</div>';
     }    
     
     function toggleFilters() {
@@ -1262,7 +1294,15 @@
             <section class="pane ${activeTab === 1 ? "active" : ""}">
                 <!-- Selector de tipo -->
                 <div class="grid" style="margin-bottom: 15px;">
-                    ${select("Tipo de habilitación","habilitacionTipo",["Provincia","CABA","Ambas"], "", "onchange=\"toggleSeccionesHabilitacion()\"")}
+                    <div class="field">
+                        <label>Tipo de habilitación</label>
+                        <select name="habilitacionTipo" onchange="toggleSeccionesHabilitacion()">
+                            <option value="">Seleccionar</option>
+                            <option value="Provincia" ${editing?.habilitacionTipo === 'Provincia' ? 'selected' : ''}>Provincia</option>
+                            <option value="CABA" ${editing?.habilitacionTipo === 'CABA' ? 'selected' : ''}>CABA</option>
+                            <option value="Ambas" ${editing?.habilitacionTipo === 'Ambas' ? 'selected' : ''}>Ambas</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- ========================================= -->
