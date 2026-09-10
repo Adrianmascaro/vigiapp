@@ -986,38 +986,38 @@
     async function cargarStockInicial() {
         const stockImaginario = [
             // Uniforme 1 - NUEVAS
-            { tipo: 'Camisa c/vivos', talla: '40', condicion: 'nueva', cantidad: 5 },
-            { tipo: 'Camisa c/vivos', talla: '42', condicion: 'nueva', cantidad: 5 },
-            { tipo: 'Camisa c/vivos', talla: '44', condicion: 'nueva', cantidad: 5 },
-            { tipo: 'Pantalón c/vivos', talla: '40', condicion: 'nueva', cantidad: 5 },
-            { tipo: 'Pantalón c/vivos', talla: '42', condicion: 'nueva', cantidad: 5 },
-            { tipo: 'Tricota', talla: 'M', condicion: 'nueva', cantidad: 10 },
-            { tipo: 'Tricota', talla: 'L', condicion: 'nueva', cantidad: 10 },
-            { tipo: 'Campera', talla: 'M', condicion: 'nueva', cantidad: 5 },
-            { tipo: 'Campera', talla: 'L', condicion: 'nueva', cantidad: 5 },
-            { tipo: 'Cinturón', talla: '100', condicion: 'nueva', cantidad: 10 },
-            { tipo: 'Corbata', talla: 'Única', condicion: 'nueva', cantidad: 20 },
+            { tipo: 'Camisa c/vivos', talla: '40', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Camisa c/vivos', talla: '42', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Camisa c/vivos', talla: '44', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Pantalón c/vivos', talla: '40', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Pantalón c/vivos', talla: '42', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Tricota', talla: 'M', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Tricota', talla: 'L', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Campera', talla: 'M', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Campera', talla: 'L', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Cinturón', talla: '100', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Corbata', talla: 'Única', condicion: 'nueva', cantidad: 500 },
 
             // Uniforme 1 - USADAS
-            { tipo: 'Camisa c/vivos', talla: '42', condicion: 'usada', cantidad: 3 },
-            { tipo: 'Pantalón c/vivos', talla: '42', condicion: 'usada', cantidad: 3 },
-            { tipo: 'Tricota', talla: 'L', condicion: 'usada', cantidad: 5 },
+            { tipo: 'Camisa c/vivos', talla: '42', condicion: 'usada', cantidad: 100 },
+            { tipo: 'Pantalón c/vivos', talla: '42', condicion: 'usada', cantidad: 100 },
+            { tipo: 'Tricota', talla: 'L', condicion: 'usada', cantidad: 100 },
 
             // Uniforme 2 - NUEVAS
-            { tipo: 'Camisa lisa', talla: '40', condicion: 'nueva', cantidad: 5 },
-            { tipo: 'Camisa lisa', talla: '42', condicion: 'nueva', cantidad: 5 },
-            { tipo: 'Pantalón liso', talla: '40', condicion: 'nueva', cantidad: 5 },
-            { tipo: 'Pantalón liso', talla: '42', condicion: 'nueva', cantidad: 5 },
-            { tipo: 'Saco', talla: '42', condicion: 'nueva', cantidad: 5 },
-            { tipo: 'Sobretodo', talla: 'L', condicion: 'nueva', cantidad: 3 },
-            { tipo: 'Chaleco', talla: '42', condicion: 'nueva', cantidad: 5 },
+            { tipo: 'Camisa lisa', talla: '40', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Camisa lisa', talla: '42', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Pantalón liso', talla: '40', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Pantalón liso', talla: '42', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Saco', talla: '42', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Sobretodo', talla: 'L', condicion: 'nueva', cantidad: 300 },
+            { tipo: 'Chaleco', talla: '42', condicion: 'nueva', cantidad: 500 },
 
             // Uniforme 3 - NUEVAS
-            { tipo: 'Chomba', talla: 'M', condicion: 'nueva', cantidad: 10 },
-            { tipo: 'Chomba', talla: 'L', condicion: 'nueva', cantidad: 10 },
-            { tipo: 'Pantalón cargo', talla: '42', condicion: 'nueva', cantidad: 5 },
-            { tipo: 'Buzo', talla: 'L', condicion: 'nueva', cantidad: 5 },
-            { tipo: 'Campera', talla: 'L', condicion: 'nueva', cantidad: 5 }
+            { tipo: 'Chomba', talla: 'M', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Chomba', talla: 'L', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Pantalón cargo', talla: '42', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Buzo', talla: 'L', condicion: 'nueva', cantidad: 500 },
+            { tipo: 'Campera', talla: 'L', condicion: 'nueva', cantidad: 500 }
         ];
 
         if (!confirm(`¿Cargar ${stockImaginario.length} lotes de stock inicial?`)) return;
