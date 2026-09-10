@@ -247,9 +247,46 @@
       <div id="vistaLogistica" class="vista hidden">
           <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
               <button class="secondary" onclick="volverMenu()" style="margin-bottom: 15px;">← Volver al menú</button>
-              <h2 style="color: var(--navy);">👔 Logística de Uniformes</h2>
-              <p style="color: #657587;">Próximamente: gestión de stock, compras, incidencias y ciclo de vida de prendas.</p>
-            <!-- Aquí irá todo el contenido del módulo de Logística -->
+        
+              <h2 style="color: var(--navy); margin-bottom: 20px;">👔 Logística de Uniformes</h2>
+
+              <!-- Barra de herramientas -->
+              <div class="toolbar">
+                  <input id="searchStock" class="search" placeholder="Buscar por tipo, talla o condición…" oninput="renderStock()">
+                  <button class="secondary" onclick="toggleFiltrosStock()">Filtros</button>
+                  <button class="secondary" onclick="cargarStockInicial()">📦 Cargar stock inicial</button>
+              </div>
+
+              <!-- Filtros avanzados -->
+              <form id="filterFormStock" class="filters card hidden" style="padding:16px; margin-bottom:18px;">
+                  <div class="grid">
+                      <div class="field">
+                          <label>Condición</label>
+                          <select name="condicion" onchange="renderStock()">
+                              <option value="">Todas</option>
+                              <option value="nueva">Nueva</option>
+                              <option value="usada">Usada</option>
+                          </select>
+                      </div>
+                      <div class="field">
+                          <label>Tipo</label>
+                          <select name="tipo" onchange="renderStock()">
+                              <option value="">Todos</option>
+                              ${tiposPrenda.map(t => `<option value="${t}">${t}</option>`).join('')}
+                          </select>
+                      </div>
+                      <div class="field">
+                          <label>Stock bajo (≤)</label>
+                          <input type="number" name="stockBajo" min="0" placeholder="Ej. 3" oninput="renderStock()">
+                      </div>
+                  </div>
+              </form>
+
+              <!-- Resumen general -->
+              <div id="resumenStock" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom:20px;"></div>
+
+              <!-- Lista de stock -->
+              <div class="card list" id="listaStock"><div class="empty">Cargando stock…</div></div>
           </div>
       </div>
 
@@ -2668,6 +2705,365 @@
             seccionUnica.style.display = 'block';
             seccionAmbas.style.display = 'none';
         }
+    }
+
+    // =============================================
+    // MÓDULO: STOCK DE UNIFORMES
+    // =============================================
+
+    let stockData = [];
+
+    function listenStock() {
+        db.collection("stock_uniformes").orderBy("tipo", "asc").onSnapshot(snapshot => {
+            stockData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderStock();
+        }, error => {
+            toast("Error al cargar stock: " + error.message, true);
+        });
+    }
+
+    function renderStock() {
+        const query = (document.getElementById("searchStock")?.value || "").toLowerCase().trim();
+        const form = document.getElementById("filterFormStock");
+
+        if (!stockData.length) {
+            document.getElementById("listaStock").innerHTML = '<div class="empty">No hay stock cargado. Usá "Cargar stock inicial".</div>';
+            document.getElementById("resumenStock").innerHTML = '';
+            return;
+        }
+
+        let list = stockData;
+
+        // Búsqueda
+        if (query) {
+            list = list.filter(s =>
+                (s.tipo || "").toLowerCase().includes(query) ||
+                String(s.talla || "").toLowerCase().includes(query) ||
+                (s.condicion || "").toLowerCase().includes(query)
+            );
+        }
+
+        // Filtros
+        if (form && !form.classList.contains("hidden")) {
+            const data = new FormData(form);
+            const condicion = data.get("condicion");
+            const tipo = data.get("tipo");
+            const stockBajo = Number(data.get("stockBajo") || 0);
+
+            list = list.filter(s =>
+                (!condicion || s.condicion === condicion) &&
+                (!tipo || s.tipo === tipo) &&
+                (!stockBajo || (s.cantidadDisponible || 0) <= stockBajo)
+            );
+        }
+
+        // Resumen
+        const totalNuevas = list.filter(s => s.condicion === 'nueva').reduce((a, s) => a + (s.cantidadDisponible || 0), 0);
+        const totalUsadas = list.filter(s => s.condicion === 'usada').reduce((a, s) => a + (s.cantidadDisponible || 0), 0);
+        const totalLotes = list.length;
+
+        document.getElementById("resumenStock").innerHTML = `
+            <div class="stat-card" style="background:#e6f7e6; border-radius:8px; padding:12px; text-align:center;">
+                <div style="font-size:24px; font-weight:800; color:#18865b;">${totalNuevas}</div>
+                <div style="font-size:12px; color:#657587;">Prendas nuevas</div>
+            </div>
+            <div class="stat-card" style="background:#fff4e6; border-radius:8px; padding:12px; text-align:center;">
+                <div style="font-size:24px; font-weight:800; color:#bd6d00;">${totalUsadas}</div>
+                <div style="font-size:12px; color:#657587;">Prendas usadas</div>
+            </div>
+            <div class="stat-card" style="background:#e9f0f7; border-radius:8px; padding:12px; text-align:center;">
+                <div style="font-size:24px; font-weight:800; color:#1479d1;">${totalLotes}</div>
+                <div style="font-size:12px; color:#657587;">Lotes</div>
+            </div>
+        `;
+
+        // Lista
+        if (!list.length) {
+            document.getElementById("listaStock").innerHTML = '<div class="empty">No se encontraron lotes con esos filtros.</div>';
+            return;
+        }
+
+        document.getElementById("listaStock").innerHTML = list.map(s => {
+            const stockBajo = (s.cantidadDisponible || 0) <= 3;
+            const condLabel = s.condicion === 'nueva' ? '🟢 Nueva' : '🟡 Usada';
+            const bg = s.condicion === 'nueva' ? '#e6f7e6' : '#fff4e6';
+
+            return `
+                <div class="row" style="grid-template-columns: auto 1fr auto; gap:13px;">
+                    <div class="avatar" style="background:${bg};">${s.condicion === 'nueva' ? '🆕' : '♻️'}</div>
+                    <div>
+                        <strong>${esc(s.tipo)} · Talle ${esc(s.talla)}</strong>
+                        <div class="muted">
+                            ${condLabel} · Disponible: <strong>${s.cantidadDisponible || 0}</strong>
+                            ${s.cantidadTotal ? ` / Total histórico: ${s.cantidadTotal}` : ''}
+                            ${stockBajo ? ' · <span style="color:#c53d3d;font-weight:bold;">⚠️ Stock bajo</span>' : ''}
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                        <button class="secondary" onclick="openModalDescarte('${s.id}')" style="font-size:12px; padding:6px 10px; color:#c53d3d; border-color:#c53d3d;">🗑️ Descarte</button>
+                        <button class="secondary" onclick="openModalAjuste('${s.id}')" style="font-size:12px; padding:6px 10px;">✏️ Ajustar</button>
+                        <button class="secondary" onclick="verMovimientos('${s.id}')" style="font-size:12px; padding:6px 10px;">📋 Historial</button>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    function toggleFiltrosStock() {
+        document.getElementById("filterFormStock").classList.toggle("hidden");
+        renderStock();
+    }
+
+    // -------- DESCARTE --------
+
+    function openModalDescarte(id) {
+        const lote = stockData.find(s => s.id === id);
+        if (!lote) {
+            toast('Lote no encontrado.', true);
+            return;
+        }
+
+        const modalHTML = `
+            <div class="modal-bg">
+                <div class="modal" style="max-width:500px;">
+                    <div class="modal-head">
+                        <strong>🗑️ Registrar descarte</strong>
+                        <span class="spacer"></span>
+                        <button class="secondary" onclick="closeModal()">×</button>
+                    </div>
+                    <div style="padding:20px;">
+                        <p class="muted" style="margin-top:0;">
+                            ${esc(lote.tipo)} · Talle ${esc(lote.talla)} · ${lote.condicion === 'nueva' ? 'Nueva' : 'Usada'}<br>
+                            Disponible actual: <strong>${lote.cantidadDisponible || 0}</strong>
+                        </p>
+
+                        <div class="grid" style="grid-template-columns: 1fr 1fr;">
+                            <div class="field">
+                                <label>Cantidad a descartar</label>
+                                <input type="number" id="descarteCantidad" min="1" max="${lote.cantidadDisponible}" value="1">
+                            </div>
+                            <div class="field">
+                                <label>Motivo</label>
+                                <select id="descarteMotivo">
+                                    <option value="">Seleccionar</option>
+                                    ${MOTIVOS_DESCARTE.map(m => `<option value="${m}">${m}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="field full" style="grid-column:1/-1;">
+                                <label>Detalle (opcional)</label>
+                                <input type="text" id="descarteDetalle" placeholder="Ej. Se rompió durante un forcejeo">
+                            </div>
+                        </div>
+
+                        <div class="modal-foot" style="padding:16px 0 0 0;">
+                            <button type="button" class="secondary" onclick="closeModal()">Cancelar</button>
+                            <button type="button" class="primary" onclick="confirmarDescarte('${id}')" style="background:#c53d3d;">Confirmar descarte</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById("modalHost").innerHTML = modalHTML;
+    }
+
+    async function confirmarDescarte(id) {
+        const lote = stockData.find(s => s.id === id);
+        if (!lote) return;
+
+        const cantidad = parseInt(document.getElementById("descarteCantidad").value) || 0;
+        const motivo = document.getElementById("descarteMotivo").value;
+        const detalle = document.getElementById("descarteDetalle").value.trim();
+
+        if (cantidad <= 0) {
+            toast('Ingrese una cantidad válida.', true);
+            return;
+        }
+        if (cantidad > (lote.cantidadDisponible || 0)) {
+            toast(`No hay suficiente stock. Disponible: ${lote.cantidadDisponible}`, true);
+            return;
+        }
+        if (!motivo) {
+            toast('Seleccione un motivo.', true);
+            return;
+        }
+
+        try {
+            loading(true);
+            const movimientos = lote.movimientos || [];
+            movimientos.push({
+                fecha: new Date().toISOString().slice(0, 10),
+                tipo: 'descarte',
+                cantidad: -cantidad,
+                motivo: motivo,
+                detalle: detalle || `Descarte de ${cantidad} ${lote.tipo} talle ${lote.talla} (${lote.condicion})`,
+                autorizadoPor: currentUser?.email || 'desconocido'
+            });
+
+            await db.collection('stock_uniformes').doc(id).update({
+                cantidadDisponible: (lote.cantidadDisponible || 0) - cantidad,
+                movimientos: movimientos,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            toast(`Se descartaron ${cantidad} unidades.`);
+            closeModal();
+        } catch (error) {
+            toast('Error: ' + error.message, true);
+        } finally {
+            loading(false);
+        }
+    }
+
+    // -------- AJUSTE --------
+
+    function openModalAjuste(id) {
+        const lote = stockData.find(s => s.id === id);
+        if (!lote) {
+            toast('Lote no encontrado.', true);
+            return;
+        }
+
+        const modalHTML = `
+            <div class="modal-bg">
+                <div class="modal" style="max-width:500px;">
+                    <div class="modal-head">
+                        <strong>✏️ Ajustar stock</strong>
+                        <span class="spacer"></span>
+                        <button class="secondary" onclick="closeModal()">×</button>
+                    </div>
+                    <div style="padding:20px;">
+                        <p class="muted" style="margin-top:0;">
+                            ${esc(lote.tipo)} · Talle ${esc(lote.talla)} · ${lote.condicion === 'nueva' ? 'Nueva' : 'Usada'}<br>
+                            Disponible actual: <strong>${lote.cantidadDisponible || 0}</strong>
+                        </p>
+
+                        <div class="grid" style="grid-template-columns: 1fr 1fr;">
+                            <div class="field">
+                                <label>Nueva cantidad disponible</label>
+                                <input type="number" id="ajusteCantidad" min="0" value="${lote.cantidadDisponible || 0}">
+                            </div>
+                            <div class="field">
+                                <label>Motivo</label>
+                                <select id="ajusteMotivo">
+                                    <option value="">Seleccionar</option>
+                                    <option value="Ajuste por inventario">Ajuste por inventario</option>
+                                    <option value="Corrección de carga inicial">Corrección de carga inicial</option>
+                                    <option value="Devolución a proveedor">Devolución a proveedor</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
+                            <div class="field full" style="grid-column:1/-1;">
+                                <label>Detalle (opcional)</label>
+                                <input type="text" id="ajusteDetalle" placeholder="Ej. Se corrigió conteo real">
+                            </div>
+                        </div>
+
+                        <div class="modal-foot" style="padding:16px 0 0 0;">
+                            <button type="button" class="secondary" onclick="closeModal()">Cancelar</button>
+                            <button type="button" class="primary" onclick="confirmarAjuste('${id}')">Guardar ajuste</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById("modalHost").innerHTML = modalHTML;
+    }
+
+    async function confirmarAjuste(id) {
+        const lote = stockData.find(s => s.id === id);
+        if (!lote) return;
+
+        const nuevaCantidad = parseInt(document.getElementById("ajusteCantidad").value);
+        const motivo = document.getElementById("ajusteMotivo").value;
+        const detalle = document.getElementById("ajusteDetalle").value.trim();
+
+        if (isNaN(nuevaCantidad) || nuevaCantidad < 0) {
+            toast('Ingrese una cantidad válida.', true);
+            return;
+        }
+        if (!motivo) {
+            toast('Seleccione un motivo.', true);
+            return;
+        }
+
+        const diferencia = nuevaCantidad - (lote.cantidadDisponible || 0);
+
+        try {
+            loading(true);
+            const movimientos = lote.movimientos || [];
+            movimientos.push({
+                fecha: new Date().toISOString().slice(0, 10),
+                tipo: 'ajuste',
+                cantidad: diferencia,
+                motivo: motivo,
+                detalle: detalle || `Ajuste de ${lote.cantidadDisponible} a ${nuevaCantidad}`,
+                autorizadoPor: currentUser?.email || 'desconocido'
+            });
+
+            await db.collection('stock_uniformes').doc(id).update({
+                cantidadDisponible: nuevaCantidad,
+                movimientos: movimientos,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            toast(`Stock ajustado a ${nuevaCantidad} unidades.`);
+            closeModal();
+        } catch (error) {
+            toast('Error: ' + error.message, true);
+        } finally {
+            loading(false);
+        }
+    }
+
+    // -------- HISTORIAL DE MOVIMIENTOS --------
+
+    function verMovimientos(id) {
+        const lote = stockData.find(s => s.id === id);
+        if (!lote) return;
+
+        const movimientos = (lote.movimientos || []).slice().reverse();
+
+        const modalHTML = `
+            <div class="modal-bg">
+                <div class="modal" style="max-width:700px;">
+                    <div class="modal-head">
+                        <strong>📋 Historial: ${esc(lote.tipo)} talle ${esc(lote.talla)} (${lote.condicion})</strong>
+                        <span class="spacer"></span>
+                        <button class="secondary" onclick="closeModal()">×</button>
+                    </div>
+                    <div style="padding:20px;">
+                        ${movimientos.length ? `
+                            <table class="data-table" style="width:100%;">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Tipo</th>
+                                        <th>Cantidad</th>
+                                        <th>Detalle</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${movimientos.map(m => `
+                                        <tr>
+                                            <td>${esc(m.fecha || '—')}</td>
+                                            <td>${esc(m.tipo || '—')}</td>
+                                            <td style="color:${(m.cantidad || 0) < 0 ? '#c53d3d' : '#18865b'}; font-weight:bold;">
+                                                ${(m.cantidad || 0) > 0 ? '+' : ''}${m.cantidad || 0}
+                                            </td>
+                                            <td style="font-size:12px;">${esc(m.detalle || m.motivo || '—')}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        ` : '<p class="muted">Sin movimientos registrados.</p>'}
+                    </div>
+                    <div class="modal-foot">
+                        <button class="secondary" onclick="closeModal()">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById("modalHost").innerHTML = modalHTML;
     }
     
     init();
