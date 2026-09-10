@@ -387,23 +387,8 @@
     }[c]));
 
     const sizesNum = Array.from({length:13}, (_,i) => 36 + i * 2);
-    const tiposPrenda = ["Camisa c/vivos", "Camisa lisa", "Chomba", "Saco", "Pantalón c/vivos", "Pantalón liso", "Pantalón cargo", "Tricota", "Campera", "Sobretodo", "Corbata", "Cinturón"];
-    
-    /*const PRENDAS_ESTANDAR = [
-        { tipo: 'Camisa c/vivos', cantidad: 2 },
-        { tipo: 'Camisa lisa', cantidad: 2 },
-        { tipo: 'Chomba', cantidad: 2 },
-        { tipo: 'Saco', cantidad: 2 },
-        { tipo: 'Pantalón c/vivos', cantidad: 2 },
-        { tipo: 'Pantalón liso', cantidad: 2 },
-        { tipo: 'Pantalón cargo', cantidad: 2 },
-        { tipo: 'Tricota', cantidad: 1 },
-        { tipo: 'Campera', cantidad: 1 },
-        { tipo: 'Sobretodo', cantidad: 1 },
-        { tipo: 'Cinturón', cantidad: 1 },
-        { tipo: 'Corbata', cantidad: 1 }
-    ];*/
-
+    const tiposPrenda = ["Camisa c/vivos", "Camisa lisa", "Chomba", "Saco", "Pantalón c/vivos", "Pantalón liso", "Pantalón cargo", "Tricota", "Buzo", "Campera", "Sobretodo", "Chaleco", "Corbata", "Cinturón"];
+  
     const UNIFORMES = {
         1: {
             nombre: 'Uniforme 1 (Vivos)',
@@ -423,6 +408,7 @@
                 { tipo: 'Pantalón liso', cantidad: 2 },
                 { tipo: 'Saco', cantidad: 2 },
                 { tipo: 'Sobretodo', cantidad: 1 },
+                { tipo: 'Chaleco', cantidad: 1 },
                 { tipo: 'Corbata', cantidad: 1 },
                 { tipo: 'Cinturón', cantidad: 1 }
             ]
@@ -432,7 +418,7 @@
             prendas: [
                 { tipo: 'Chomba', cantidad: 2 },
                 { tipo: 'Pantalón cargo', cantidad: 2 },
-                { tipo: 'Tricota', cantidad: 1 },
+                { tipo: 'Buzo', cantidad: 1 },
                 { tipo: 'Campera', cantidad: 1 }
             ]
         }
@@ -836,10 +822,12 @@
             case 'Pantalón liso':
             case 'Pantalón cargo':
             case 'Saco':
+            case 'Chaleco':
                 tallas = sizesNum;
                 break;
             case 'Chomba':
             case 'Tricota':
+            case 'Buzo':
             case 'Campera':
             case 'Sobretodo':
                 tallas = sizesLetter;
@@ -1908,6 +1896,10 @@
         pantalonCargoCantidad: "",
         tricotaTalla: "",
         tricotaCantidad: "",
+        buzoTalla: "",
+        buzoCantidad: "",
+        chalecoTalla: "",
+        chalecoCantidad: "",
         camperaTalla: "",
         camperaCantidad: "",
         sobretodoTalla: "",
