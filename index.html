@@ -640,6 +640,15 @@
         return html;
     }
 
+    function obtenerPrendasDelUniforme() {
+        // Determinar el tipo de uniforme del vigilador que se está editando
+        const tipo = editing?.tipoUniforme || 1;
+        const uniforme = UNIFORMES[tipo];
+        if (!uniforme) return tiposPrenda; // Fallback: todas las prendas
+        // Extraer solo los tipos de prenda del uniforme
+        return uniforme.prendas.map(p => p.tipo);
+    }
+    
     function renderHistorialJudicial() {
         const historial = editing?.historialJudicial || [];
         if (historial.length === 0) return '<div class="muted">Sin novedades judiciales registradas.</div>';
@@ -768,6 +777,14 @@
         const container = document.getElementById('prendasContainer');
         if (!container) return;
 
+        // Obtener las prendas del uniforme del vigilador
+        const prendasDisponibles = obtenerPrendasDelUniforme();
+
+        if (prendasDisponibles.length === 0) {
+            toast('El uniforme seleccionado no tiene prendas definidas.', true);
+            return;
+        }
+
         const fila = document.createElement('div');
         fila.className = 'fila-prenda';
         fila.style.cssText = 'display:flex; gap:10px; align-items:end; margin-bottom:8px;';
@@ -775,7 +792,7 @@
             <div class="field" style="flex:2;">
                 <label for="tipoPrenda_${Date.now()}">Tipo</label>
                 <select class="select-tipo-prenda" id="tipoPrenda_${Date.now()}" onchange="actualizarTallas(this)">
-                    ${tiposPrenda.map(t => `<option value="${t}">${t}</option>`).join('')}
+                    ${prendasDisponibles.map(t => `<option value="${t}">${t}</option>`).join('')}
                 </select>
             </div>
             <div class="field" style="flex:1;">
@@ -791,7 +808,7 @@
             <button type="button" class="secondary danger" onclick="eliminarFilaPrenda(this)" style="margin-bottom:2px;">✕</button>
         `;
         container.appendChild(fila);
-    
+
         const selectTipo = fila.querySelector('.select-tipo-prenda');
         actualizarTallas(selectTipo);
     }
