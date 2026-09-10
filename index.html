@@ -426,6 +426,19 @@
   
     const sizesLetter = ["S","M","L","XL","XXL","XXXL"];
 
+    const CONDICIONES = [
+        { value: 'nueva', label: 'Nueva' },
+        { value: 'usada', label: 'Usada' }
+    ];
+
+    const MOTIVOS_DESCARTE = [
+        'Rotura irreparable',
+        'Mancha permanente',
+        'Desgaste por uso',
+        'Pérdida',
+        'Otro'
+    ];
+    
     const ETAPAS_PROCESO = {
         'mediacion': 'Mediación',
         'intimacion': 'Intimación',
@@ -607,7 +620,7 @@
 
         sorted.forEach(entrega => {
             const detallePrendas = entrega.prendas.map(p => 
-                `${p.tipo} x${p.cantidad} (talle ${p.talla})`
+                `${p.tipo} x${p.cantidad} (talle ${p.talla}, ${p.condicion || 'nueva'})`
             ).join(', ');
 
             html += `
@@ -763,9 +776,7 @@
         const container = document.getElementById('prendasContainer');
         if (!container) return;
 
-        // Obtener las prendas del uniforme del vigilador
         const prendasDisponibles = obtenerPrendasDelUniforme();
-
         if (prendasDisponibles.length === 0) {
             toast('El uniforme seleccionado no tiene prendas definidas.', true);
             return;
@@ -776,20 +787,24 @@
         fila.style.cssText = 'display:flex; gap:10px; align-items:end; margin-bottom:8px;';
         fila.innerHTML = `
             <div class="field" style="flex:2;">
-                <label for="tipoPrenda_${Date.now()}">Tipo</label>
-                <select class="select-tipo-prenda" id="tipoPrenda_${Date.now()}" onchange="actualizarTallas(this)">
+                <label>Tipo</label>
+                <select class="select-tipo-prenda" onchange="actualizarTallas(this)">
                     ${prendasDisponibles.map(t => `<option value="${t}">${t}</option>`).join('')}
                 </select>
             </div>
             <div class="field" style="flex:1;">
-                <label for="tallaPrenda_${Date.now()}">Talla</label>
-                <select class="select-talla-prenda" id="tallaPrenda_${Date.now()}">
-                    <!-- Se llenará dinámicamente -->
+                <label>Talla</label>
+                <select class="select-talla-prenda"></select>
+            </div>
+            <div class="field" style="flex:1;">
+                <label>Condición</label>
+                <select class="select-condicion-prenda">
+                    ${CONDICIONES.map(c => `<option value="${c.value}">${c.label}</option>`).join('')}
                 </select>
             </div>
             <div class="field" style="flex:1;">
-                <label for="cantidadPrenda_${Date.now()}">Cantidad</label>
-                <input type="number" class="input-cantidad" id="cantidadPrenda_${Date.now()}" value="1" min="1" max="10">
+                <label>Cantidad</label>
+                <input type="number" class="input-cantidad" value="1" min="1" max="10">
             </div>
             <button type="button" class="secondary danger" onclick="eliminarFilaPrenda(this)" style="margin-bottom:2px;">✕</button>
         `;
@@ -798,7 +813,7 @@
         const selectTipo = fila.querySelector('.select-tipo-prenda');
         actualizarTallas(selectTipo);
     }
-
+    
     function eliminarFilaPrenda(btn) {
         const fila = btn.closest('.fila-prenda');
         const container = document.getElementById('prendasContainer');
@@ -864,9 +879,15 @@
         filas.forEach(fila => {
             const tipoPrenda = fila.querySelector('.select-tipo-prenda').value;
             const talla = fila.querySelector('.select-talla-prenda').value;
+            const condicion = fila.querySelector('.select-condicion-prenda').value;
             const cantidad = parseInt(fila.querySelector('.input-cantidad').value) || 0;
             if (cantidad > 0) {
-                prendas.push({ tipo: tipoPrenda, talla: talla, cantidad: cantidad });
+                prendas.push({ 
+                    tipo: tipoPrenda, 
+                    talla: talla, 
+                    condicion: condicion, 
+                    cantidad: cantidad 
+                });
             }
         });
 
@@ -925,6 +946,146 @@
         }
     }
 
+    async function cargarStockInicial() {
+        const stockImaginario = [
+            // Uniforme 1 - NUEVAS
+            { tipo: 'Camisa c/vivos', talla: '40', condicion: 'nueva', cantidad: 5 },
+            { tipo: 'Camisa c/vivos', talla: '42', condicion: 'nueva', cantidad: 5 },
+            { tipo: 'Camisa c/vivos', talla: '44', condicion: 'nueva', cantidad: 5 },
+            { tipo: 'Pantalón c/vivos', talla: '40', condicion: 'nueva', cantidad: 5 },
+            { tipo: 'Pantalón c/vivos', talla: '42', condicion: 'nueva', cantidad: 5 },
+            { tipo: 'Tricota', talla: 'M', condicion: 'nueva', cantidad: 10 },
+            { tipo: 'Tricota', talla: 'L', condicion: 'nueva', cantidad: 10 },
+            { tipo: 'Campera', talla: 'M', condicion: 'nueva', cantidad: 5 },
+            { tipo: 'Campera', talla: 'L', condicion: 'nueva', cantidad: 5 },
+            { tipo: 'Cinturón', talla: '100', condicion: 'nueva', cantidad: 10 },
+            { tipo: 'Corbata', talla: 'Única', condicion: 'nueva', cantidad: 20 },
+
+            // Uniforme 1 - USADAS
+            { tipo: 'Camisa c/vivos', talla: '42', condicion: 'usada', cantidad: 3 },
+            { tipo: 'Pantalón c/vivos', talla: '42', condicion: 'usada', cantidad: 3 },
+            { tipo: 'Tricota', talla: 'L', condicion: 'usada', cantidad: 5 },
+
+            // Uniforme 2 - NUEVAS
+            { tipo: 'Camisa lisa', talla: '40', condicion: 'nueva', cantidad: 5 },
+            { tipo: 'Camisa lisa', talla: '42', condicion: 'nueva', cantidad: 5 },
+            { tipo: 'Pantalón liso', talla: '40', condicion: 'nueva', cantidad: 5 },
+            { tipo: 'Pantalón liso', talla: '42', condicion: 'nueva', cantidad: 5 },
+            { tipo: 'Saco', talla: '42', condicion: 'nueva', cantidad: 5 },
+            { tipo: 'Sobretodo', talla: 'L', condicion: 'nueva', cantidad: 3 },
+            { tipo: 'Chaleco', talla: '42', condicion: 'nueva', cantidad: 5 },
+
+            // Uniforme 3 - NUEVAS
+            { tipo: 'Chomba', talla: 'M', condicion: 'nueva', cantidad: 10 },
+            { tipo: 'Chomba', talla: 'L', condicion: 'nueva', cantidad: 10 },
+            { tipo: 'Pantalón cargo', talla: '42', condicion: 'nueva', cantidad: 5 },
+            { tipo: 'Buzo', talla: 'L', condicion: 'nueva', cantidad: 5 },
+            { tipo: 'Campera', talla: 'L', condicion: 'nueva', cantidad: 5 }
+        ];
+
+        if (!confirm(`¿Cargar ${stockImaginario.length} lotes de stock inicial?`)) return;
+
+        try {
+            loading(true);
+            let creados = 0;
+
+            for (const item of stockImaginario) {
+                const existente = await db.collection('stock_uniformes')
+                    .where('tipo', '==', item.tipo)
+                    .where('talla', '==', item.talla)
+                    .where('condicion', '==', item.condicion)
+                    .limit(1)
+                    .get();
+
+                if (existente.empty) {
+                    await db.collection('stock_uniformes').add({
+                        tipo: item.tipo,
+                        talla: item.talla,
+                        condicion: item.condicion,
+                        cantidadDisponible: item.cantidad,
+                        cantidadTotal: item.cantidad,
+                        movimientos: [{
+                            fecha: new Date().toISOString().slice(0,10),
+                            tipo: 'ingreso_inicial',
+                            cantidad: item.cantidad,
+                            detalle: 'Stock inicial imaginario'
+                        }],
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    creados++;
+                }
+            }
+
+            toast(`Stock inicial cargado: ${creados} lotes nuevos.`);
+        } catch (error) {
+            toast('Error al cargar stock: ' + error.message, true);
+        } finally {
+            loading(false);
+        }
+    }
+
+    async function registrarDescarte(tipo, talla, condicion, cantidad, motivo, detalle = '') {
+        if (!tipo || !talla || !condicion || !cantidad || cantidad <= 0) {
+            toast('Complete todos los campos para registrar el descarte.', true);
+            return false;
+        }
+        if (!motivo || motivo.trim() === '') {
+            toast('Debe indicar el motivo del descarte.', true);
+            return false;
+        }
+
+        try {
+            loading(true);
+
+            const snapshot = await db.collection('stock_uniformes')
+                .where('tipo', '==', tipo)
+                .where('talla', '==', talla)
+                .where('condicion', '==', condicion)
+                .limit(1)
+                .get();
+
+            if (snapshot.empty) {
+                toast('No se encontró stock de ese tipo, talla y condición.', true);
+                return false;
+            }
+
+            const doc = snapshot.docs[0];
+            const data = doc.data();
+            const stockActual = data.cantidadDisponible || 0;
+
+            if (cantidad > stockActual) {
+                toast(`No hay suficiente stock. Disponible: ${stockActual}`, true);
+                return false;
+            }
+
+            const nuevoStock = stockActual - cantidad;
+            const movimientos = data.movimientos || [];
+            movimientos.push({
+                fecha: new Date().toISOString().slice(0, 10),
+                tipo: 'descarte',
+                cantidad: -cantidad,
+                motivo: motivo.trim(),
+                detalle: detalle.trim() || `Descarte de ${cantidad} ${tipo} talla ${talla} (${condicion})`,
+                autorizadoPor: currentUser?.email || 'desconocido'
+            });
+
+            await db.collection('stock_uniformes').doc(doc.id).update({
+                cantidadDisponible: nuevoStock,
+                movimientos: movimientos,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            toast(`Se descartaron ${cantidad} unidades de ${tipo} talla ${talla}.`);
+            return true;
+        } catch (error) {
+            toast('Error al registrar descarte: ' + error.message, true);
+            return false;
+        } finally {
+            loading(false);
+        }
+    }
+    
     // Avanzar etapa del proceso de baja
     async function avanzarEtapaProceso(id) {
         if (!id) return;
