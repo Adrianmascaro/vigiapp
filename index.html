@@ -544,7 +544,12 @@
                     restaurarModulo(); // o volverMenu();
 
                     // Iniciar escucha de datos
-                    listen();
+                    listen();              // vigiladores
+                    listenObjetivos();     // ← AGREGAR
+                    listenStock();         // ← AGREGAR
+
+                    // ✅ INICIAR DETECTOR DE INACTIVIDAD (nuevo)
+                    initInactivityDetection();
 
                     // ✅ INICIAR DETECTOR DE INACTIVIDAD (nuevo)
                     initInactivityDetection();
