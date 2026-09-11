@@ -924,12 +924,7 @@
             const condicion = fila.querySelector('.select-condicion-prenda').value;
             const cantidad = parseInt(fila.querySelector('.input-cantidad').value) || 0;
             if (cantidad > 0) {
-                prendas.push({ 
-                    tipo: tipoPrenda, 
-                    talla: talla, 
-                    condicion: condicion, 
-                    cantidad: cantidad 
-                });
+                prendas.push({ tipo: tipoPrenda, talla, condicion, cantidad });
             }
         });
 
@@ -938,6 +933,39 @@
             return;
         }
 
+        // █████████████████████████████████████████████
+        // VERIFICAR STOCK DISPONIBLE ANTES DE GUARDAR
+        // █████████████████████████████████████████████
+        const problemasStock = [];
+        for (const prenda of prendas) {
+            const snapshot = await db.collection('stock_uniformes')
+                .where('tipo', '==', prenda.tipo)
+                .where('talla', '==', prenda.talla)
+                .where('condicion', '==', prenda.condicion)
+                .limit(1)
+                .get();
+
+            if (snapshot.empty) {
+                problemasStock.push(`❌ ${prenda.tipo} talle ${prenda.talla} (${prenda.condicion}): sin lote en stock.`);
+                continue;
+            }
+
+            const stockActual = snapshot.docs[0].data().cantidadDisponible || 0;
+            if (stockActual < prenda.cantidad) {
+                problemasStock.push(`⚠️ ${prenda.tipo} talle ${prenda.talla} (${prenda.condicion}): disponible ${stockActual}, solicitado ${prenda.cantidad}.`);
+            }
+        }
+
+        let continuar = true;
+        if (problemasStock.length > 0) {
+            const mensaje = `Hay problemas de stock:\n\n${problemasStock.join('\n')}\n\n¿Desea continuar igual con la entrega? (el stock no se descontará para las prendas sin disponibilidad)`;
+            continuar = confirm(mensaje);
+            if (!continuar) return;
+        }
+
+        // █████████████████████████████████████████████
+        // GUARDAR ENTREGA EN EL VIGILADOR
+        // █████████████████████████████████████████████
         const nuevaEntrega = {
             id: 'entrega_' + Date.now(),
             fecha: fecha,
@@ -950,10 +978,43 @@
 
         try {
             loading(true);
+
             await db.collection('vigiladores').doc(editing.id).update({
                 entregasRopa: editing.entregasRopa
             });
-            toast('Entrega de ropa registrada correctamente.');
+
+            // █████████████████████████████████████████████
+            // DESCONTAR STOCK (solo de las prendas que tienen stock)
+            // █████████████████████████████████████████████
+            const nombreCompleto = `${editing.nombre || ''} ${editing.apellido || ''}`.trim() || 'Vigilador';
+            let descuentosOk = 0;
+            let descuentosFallidos = 0;
+
+            for (const prenda of prendas) {
+                const resultado = await consumirStock(
+                    prenda.tipo,
+                    prenda.talla,
+                    prenda.condicion,
+                    prenda.cantidad,
+                    editing.id,
+                    nombreCompleto
+                );
+
+                if (resultado.success) {
+                    descuentosOk++;
+                } else {
+                    descuentosFallidos++;
+                    console.warn(`No se descontó stock de ${prenda.tipo}: ${resultado.motivo}`);
+                }
+            }
+
+            // Mensaje final
+            if (descuentosFallidos === 0) {
+                toast(`Entrega registrada. Stock descontado en ${descuentosOk} prenda(s).`);
+            } else {
+                toast(`Entrega registrada. ${descuentosOk} con descuento, ${descuentosFallidos} sin descuento (stock insuficiente).`, true);
+            }
+
             ocultarFormularioRopa();
             renderPanes();
         } catch (error) {
@@ -962,7 +1023,7 @@
             loading(false);
         }
     }
-
+    
     async function eliminarEntregaRopa(id) {
         if (!confirm('¿Eliminar este registro de entrega? Esta acción no se puede deshacer.')) return;
     
@@ -1067,6 +1128,51 @@
         }
     }
 
+    async function consumirStock(tipo, talla, condicion, cantidad, vigiladorId, vigiladorNombre) {
+        // Buscar el lote que coincida
+        const snapshot = await db.collection('stock_uniformes')
+            .where('tipo', '==', tipo)
+            .where('talla', '==', talla)
+            .where('condicion', '==', condicion)
+            .limit(1)
+            .get();
+
+        if (snapshot.empty) {
+            return { success: false, motivo: 'No existe lote en stock para esta prenda.' };
+        }
+
+        const doc = snapshot.docs[0];
+        const data = doc.data();
+        const stockActual = data.cantidadDisponible || 0;
+
+        if (stockActual < cantidad) {
+            return { 
+                success: false, 
+                motivo: `Stock insuficiente. Disponible: ${stockActual}, solicitado: ${cantidad}.`,
+                disponible: stockActual
+            };
+        }
+
+        // Descontar del stock
+        const movimientos = data.movimientos || [];
+        movimientos.push({
+            fecha: new Date().toISOString().slice(0, 10),
+            tipo: 'entrega',
+            cantidad: -cantidad,
+            vigiladorId: vigiladorId,
+            detalle: `Entrega de ${cantidad} ${tipo} talle ${talla} (${condicion}) a ${vigiladorNombre}`,
+            autorizadoPor: currentUser?.email || 'desconocido'
+        });
+
+        await db.collection('stock_uniformes').doc(doc.id).update({
+            cantidadDisponible: stockActual - cantidad,
+            movimientos: movimientos,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        return { success: true };
+    }
+    
     async function registrarDescarte(tipo, talla, condicion, cantidad, motivo, detalle = '') {
         if (!tipo || !talla || !condicion || !cantidad || cantidad <= 0) {
             toast('Complete todos los campos para registrar el descarte.', true);
