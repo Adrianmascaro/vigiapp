@@ -362,8 +362,8 @@
                 // 8 dígitos exactos
                 return /^\d{8}$/.test(valor);
             case 'cuil':
-                // 11 dígitos (sin guiones)
-                return /^\d{11}$/.test(valor);
+                // Formato exacto: 2 dígitos, guion, 8 dígitos, guion, 1 dígito
+                return /^\d{2}-\d{8}-\d{1}$/.test(valor);
             case 'telefono':
                 // 10 dígitos (código de área + número)
                 return /^\d{10}$/.test(valor);
